@@ -1,74 +1,78 @@
-# poc-fintech-playwright
-Prova de conceito com playwright
+# 🚀 POC Fintech - Automação de Testes co Playwright
 
-# 🚀 POC Fintech - Automação de Testes com Cypress
+> Projeto de automação de testes End-to-End (E2E) para a aplicação Fintech, utilizando **Playwright** com **Node.js**.
 
-> Projeto de automação de testes End-to-End (E2E) para a aplicação Fintech, utilizando Cypress e boas práticas de QA.
-
-![Cypress](https://img.shields.io/badge/-cypress-%23E5E5E5?style=for-the-badge&logo=cypress&logoColor=058a5e)
-![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E)
+![Playwright](https://img.shields.io/badge/-playwright-%232EAD33?style=for-the-badge&logo=playwright&logoColor=white)
 ![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
 
 ## 📋 Sobre o Projeto
 
-Este repositório contém a suíte de testes automatizados para validar as funcionalidades críticas do sistema Fintech. O objetivo é garantir a qualidade do software através de testes rápidos, confiáveis e de fácil manutenção.
+Este repositório contém a suíte de testes automatizados para validar as funcionalidades críticas do sistema Fintech. O foco desta branch é a implementação utilizando **Playwright** com **Node.js**.
 
-### 🛠 Tecnologias Utilizadas
+### 🌍 Estrutura de Branches (Multilinguagem)
 
-- **[Cypress](https://www.cypress.io/)**: Framework de automação de testes moderna.
-- **Node.js**: Ambiente de execução JavaScript.
-- **GitLab CI/CD**: Para integração contínua (futuro).
-- **Mochawesome Report**: Gerador de relatórios visuais (configuração recomendada).
+Este projeto serve como base para estudos comparativos e implementações em diferentes linguagens. A organização das branches é a seguinte:
+
+| Branch | Tecnologia | Descrição |
+| :--- | :--- | :--- |
+| **`main`** (Atual) | **Playwright + Node.js** | Stack principal de automação com JavaScript/TypeScript. |
+| **`java`** | **Java** | Implementação utilizando ecossistema Java (ex: Selenium/Playwright Java). |
+| **`python`** | **Python** | Implementação utilizando ecossistema Python (ex: Playwright Python/Selenium). |
 
 ---
 
 ## ⚙️ Pré-requisitos
 
-Antes de começar, certifique-se de ter instalado em sua máquina:
-
-- **[Node.js](https://nodejs.org/)** (Versão 16 ou superior recomendada)
+- **[Node.js](https://nodejs.org/)** (LTS recomendado)
 - **Git**
 
 ## 🚀 Instalação
 
 1. Clone o repositório:
 ```bash
-git clone git@gitlab.com:GilvanS/poc-fintech-cypress.git
+git clone git@gitlab.com:GilvanS/poc-fintech-playwright.git
 ```
 
 2. Acesse a pasta do projeto:
 ```bash
-cd poc-fintech-cypress
+cd poc-fintech-playwright
 ```
 
 3. Instale as dependências:
 ```bash
 npm install
-# ou
-npm i
+```
+
+4. Instale os navegadores do Playwright:
+```bash
+npx playwright install
 ```
 
 ---
 
 ## 🏃‍♂️ Como Rodar os Testes
 
-### Modo Interativo (Cypress Open)
-Abre a interface gráfica do Cypress para ver os testes rodando em tempo real. Ideal para desenvolvimento e debug.
-
+### Rodar todos os testes (Headless)
+Executa todos os testes no terminal.
 ```bash
-npx cypress open
+npx playwright test
 ```
 
-### Modo Headless (Cypress Run)
-Executa os testes no terminal, sem abrir o navegador. Ideal para CI/CD e execução rápida.
-
+### Modo UI (Interativo)
+Abre a interface gráfica do Playwright, excelente para debug e visualização de traces.
 ```bash
-npx cypress run
+npx playwright test --ui
 ```
 
-### Rodar uma Spec Específica
+### Rodar em um navegador específico
 ```bash
-npx cypress run --spec "cypress/e2e/minha-spec.cy.js"
+npx playwright test --project=chromium
+```
+
+### Gerar relatório HTML
+```bash
+npx playwright show-report
 ```
 
 ---
@@ -76,26 +80,21 @@ npx cypress run --spec "cypress/e2e/minha-spec.cy.js"
 ## 📂 Estrutura do Projeto
 
 ```
-poc-fintech-cypress/
-├── cypress/
-│   ├── e2e/             # Arquivos de teste (.cy.js)
-│   ├── fixtures/        # Massas de dados (JSON)
-│   ├── support/         # Comandos customizados e configurações globais
-│   └── videos/          # Evidências de execução (gerado automaticamente)
-├── cypress.config.js    # Arquivo de configuração do Cypress
-├── package.json         # Dependências e scripts do projeto
-├── README.md            # Documentação do projeto
-└── .gitignore           # Arquivos ignorados pelo Git
+poc-fintech-playwright/
+├── tests/               # Arquivos de teste
+├── tests-examples/      # Exemplos gerados pelo Playwright
+├── playwright.config.ts # Configuração do Playwright
+├── package.json         # Dependências e scripts
+└── README.md            # Documentação
 ```
 
 ## 🤝 Contribuição
 
 1. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
-2. Commit suas mudanças (`git commit -m 'Adiciona novos testes de login'`)
+2. Commit suas mudanças (`git commit -m 'feat: adiciona novos testes de login'`)
 3. Faça o push para a branch (`git push origin feature/nova-feature`)
 4. Abra um Merge Request
 
 ---
 
 _Desenvolvido com foco em qualidade e automação._
-
