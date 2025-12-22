@@ -20,6 +20,11 @@ Este projeto serve como base para estudos comparativos e implementações em dif
 | **`java`** | **Java** | Implementação utilizando ecossistema Java (ex: Selenium/Playwright Java). |
 | **`python`** | **Python** | Implementação utilizando ecossistema Python (ex: Playwright Python/Selenium). |
 
+### 📚 Documentação Oficial
+
+Para mais detalhes sobre a configuração e comandos do Playwright, consulte a documentação oficial:
+- [Documentação do Playwright (Intro)](https://playwright.dev/docs/intro)
+
 ---
 
 ## ⚙️ Pré-requisitos
