@@ -59,9 +59,15 @@ npx playwright install
 ## 🏃‍♂️ Como Rodar os Testes
 
 ### Rodar todos os testes (Headless)
-Executa todos os testes no terminal.
+Executa todos os testes no terminal (sem abrir o navegador).
 ```bash
 npx playwright test
+```
+
+### Rodar com navegador visível (Headed)
+Executa os testes abrindo a janela do navegador.
+```bash
+npx playwright test --headed
 ```
 
 ### Modo UI (Interativo)
@@ -71,8 +77,16 @@ npx playwright test --ui
 ```
 
 ### Rodar em um navegador específico
+Executa os testes apenas no navegador escolhido.
 ```bash
+# Chromium (Chrome/Edge)
 npx playwright test --project=chromium
+
+# Firefox
+npx playwright test --project=firefox
+
+# WebKit (Safari)
+npx playwright test --project=webkit
 ```
 
 ### Gerar relatório HTML
