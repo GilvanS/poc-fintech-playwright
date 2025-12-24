@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { LandingPage } from '../pages/LandingPage';
 
-let landingPage
+let landingPage: LandingPage
 
 test.beforeEach(async ({ page }) => {
     landingPage = new LandingPage(page);
@@ -15,7 +15,6 @@ test('CT01.1 -Abrir site', async () => {
 test('CT01.2 - Fazer login como Admin', async ({ page }) => {
     await landingPage.visit();
     await landingPage.openLoginModal();
-    // CPF Admin: 11111111111 (conforme sua mensagem anterior)
     await landingPage.submitLoginForm('11111111111', 'admin999');
     await page.waitForTimeout(10000);
 });
@@ -23,7 +22,6 @@ test('CT01.2 - Fazer login como Admin', async ({ page }) => {
 test('CT01.3 - Fazer login como Cliente', async ({ page }) => {
     await landingPage.visit();
     await landingPage.openLoginModal();
-    // CPF Cliente: 999.999.999-99
     await landingPage.submitLoginForm('999.999.999-99', 'admin999');
     await page.waitForTimeout(10000);
 });
