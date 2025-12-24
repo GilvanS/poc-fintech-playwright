@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { LandingPage } from './pages/LandingPage';
+import { LandingPage } from '../pages/LandingPage';
 
-let landingPage;
+let landingPage
 
 test.beforeEach(async ({ page }) => {
     landingPage = new LandingPage(page);
