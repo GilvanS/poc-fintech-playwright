@@ -33,10 +33,11 @@ test('CT01.4 - Validar campo obrigatório', async ({ page }) => {
     await landingPage.openLoginModal();
     await landingPage.submitLoginForm('', ''); // Envia vazio
 
-    await landingPage.alertHaveText([
+    const message = [
         /Campo obrigatório/,
         /Campo obrigatório/
-    ]);
+    ]
+    await landingPage.alertHaveText(message);
 
     await page.waitForTimeout(10000);
 });
@@ -46,9 +47,10 @@ test('CT01.5 - Validar campo obrigatório senha', async ({ page }) => {
     await landingPage.openLoginModal();
     await landingPage.submitLoginForm('999.999.999-99', ''); // Senha vazia
 
-    await landingPage.alertHaveText([
+    const message = [
         /Campo obrigatório/
-    ]);
+    ]
+    await landingPage.alertHaveText(message);
 
     await page.waitForTimeout(10000);
 });
@@ -58,9 +60,10 @@ test('CT01.6 - Validar campo obrigatório CPF', async ({ page }) => {
     await landingPage.openLoginModal();
     await landingPage.submitLoginForm('', 'admin999'); // CPF vazio
 
-    await landingPage.alertHaveText([
+    const message = [
         /Campo obrigatório/
-    ]);
+    ]
+    await landingPage.alertHaveText(message);
 
     await page.waitForTimeout(10000);
 });

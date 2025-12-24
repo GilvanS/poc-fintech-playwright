@@ -6,19 +6,21 @@ export class LandingPage {
         this.page = page;
     }
 
-    async visit() {
+    async visit(message = 'Olá!') {
         await this.page.goto('/');
         const loggedUsed = this.page.locator('.text-2xl');
-        await expect(loggedUsed).toHaveText('Olá!');
+        await expect(loggedUsed).toHaveText(message);
     }
 
     async openLoginModal() {
-        await this.page.getByRole('button', { name: 'Acessar minha conta' }).click();
+        const message = 'Acessar minha conta'
+        await this.page.getByRole('button', { name: message }).click();
     }
 
     async validMsg() {
+        const message = 'Não é cliente? Abra uma conta'
         const msgNaoECliente = this.page.locator('.py-3')
-        await expect(msgNaoECliente).toHaveText('Não é cliente? Abra uma conta')
+        await expect(msgNaoECliente).toHaveText(message)
     }
 
     async submitLoginForm(cpf, password) {
