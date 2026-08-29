@@ -3,7 +3,16 @@
   "version": "1.0.0",
   "description": "> Projeto de automação de testes End-to-End (E2E) para a aplicação Fintech, utilizando **Playwright** com **Node.js**.",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "test:report": "playwright show-report",
+    "type-check": "tsc --noEmit"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/GilvanS/poc-fintech-playwright.git"
@@ -17,7 +26,11 @@
   },
   "homepage": "https://github.com/GilvanS/poc-fintech-playwright#readme",
   "devDependencies": {
+    "@faker-js/faker": "^10.5.0",
     "@playwright/test": "^1.57.0",
-    "@types/node": "^25.0.3"
+    "@types/node": "^25.9.3",
+    "dotenv": "^17.4.2",
+    "typescript": "^5.9.3",
+    "xlsx": "^0.18.5"
   }
 }
