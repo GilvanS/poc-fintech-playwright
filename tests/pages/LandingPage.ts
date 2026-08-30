@@ -1,7 +1,7 @@
 import { expect, Page, Locator } from "@playwright/test";
 
 export class LandingPage {
-    private readonly page: Page;
+    readonly page: Page;
 
     // Propriedades da página (Locators centralizados)
     private readonly heading: Locator;
@@ -53,14 +53,22 @@ export class LandingPage {
         await expect(this.signupPrompt).toBeVisible();
     }
 
-    async submitLoginForm(cpf: string, password: string): Promise<void> {
+    async fillLoginForm(cpf: string, password: string): Promise<void> {
         if (cpf) {
             await this.cpfInput.fill(cpf);
         }
         if (password) {
             await this.passwordInput.fill(password);
         }
+    }
+
+    async clickSubmitLoginButton(): Promise<void> {
         await this.submitLoginButton.click();
+    }
+
+    async submitLoginForm(cpf: string, password: string): Promise<void> {
+        await this.fillLoginForm(cpf, password);
+        await this.clickSubmitLoginButton();
     }
 
     async alertHaveText(target: RegExp[]): Promise<void> {

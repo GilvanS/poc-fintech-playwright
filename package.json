@@ -32,5 +32,11 @@
     "dotenv": "^17.4.2",
     "typescript": "^5.9.3",
     "xlsx": "^0.18.5"
+  },
+  "dependencies": {
+    "docxtemplater": "^3.69.3",
+    "docxtemplater-image-module-free": "^1.1.1",
+    "pizzip": "^3.2.0",
+    "winston": "^3.19.0"
   }
 }

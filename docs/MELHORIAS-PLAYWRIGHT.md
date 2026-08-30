@@ -74,7 +74,7 @@ duplicá-los quando essas outras páginas forem criadas.
 
 **Correção:** criada `tests/pages/components/NavbarComponent.ts` (Component
 Object) com os locators/ações do menu (`navigateToProfile`,
-`navegarParaCartoes`, `navegarParaShop`, `navegarParaPerfil`, `sairDoApp`).
+`navegarParaCartoes`, `navegarParaShop`, `sairDoApp`).
 `DashboardPage` passou a compor o componente via propriedade pública:
 
 ```ts

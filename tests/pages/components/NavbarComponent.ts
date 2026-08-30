@@ -12,7 +12,6 @@ export class NavbarComponent {
     private readonly profileButton: Locator;
     private readonly cartoesButton: Locator;
     private readonly shopButton: Locator;
-    private readonly perfilIconButton: Locator;
     private readonly sairButton: Locator;
 
     constructor(page: Page) {
@@ -21,7 +20,6 @@ export class NavbarComponent {
         this.profileButton = page.getByRole('button', { name: 'Perfil' });
         this.cartoesButton = page.getByRole('button', { name: 'credit_card Cartões' });
         this.shopButton = page.getByRole('button', { name: 'storefront Shop' });
-        this.perfilIconButton = page.getByRole('button', { name: 'person Perfil' });
         this.sairButton = page.getByRole('button', { name: 'Sair do App' });
     }
 
@@ -35,10 +33,6 @@ export class NavbarComponent {
 
     async navegarParaShop(): Promise<void> {
         await this.shopButton.click();
-    }
-
-    async navegarParaPerfil(): Promise<void> {
-        await this.perfilIconButton.click();
     }
 
     async sairDoApp(): Promise<void> {

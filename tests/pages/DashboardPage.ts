@@ -5,7 +5,7 @@ import { NavbarComponent } from "./components/NavbarComponent";
  * DashboardPage - Page Object para o dashboard e funcionalidades pós-login.
  */
 export class DashboardPage {
-    private page: Page;
+    readonly page: Page;
 
     // Component Object: menu de navegação persistente (Perfil, Cartões, Shop, Sair)
     readonly navbar: NavbarComponent;
@@ -110,9 +110,12 @@ export class DashboardPage {
      * Fecha o modal inicial de Conquista de Poupança, se estiver visível.
      */
     async fecharModalConquista(): Promise<void> {
-        if (await this.continuarPoupandoButton.isVisible()) {
-            await this.continuarPoupandoButton.click();
-        }
+        const btnModal = this.page.getByRole('button', { name: /Continuar Poupando/i });
+        try {
+            if (await btnModal.isVisible({ timeout: 3000 })) {
+                await btnModal.click();
+            }
+        } catch {}
     }
 
     /**

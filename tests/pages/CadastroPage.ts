@@ -1,7 +1,7 @@
 import { expect, Page, Locator } from "@playwright/test";
 
 export class CadastroPage {
-    private readonly page: Page;
+    readonly page: Page;
 
     // Locators
     private readonly fullNameInput: Locator;
@@ -36,27 +36,38 @@ export class CadastroPage {
         this.modalOverlay = page.locator('div.bg-black\\/70');
     }
 
-    async submitRegistrationForm(fullName: string, email: string, cpf: string, password: string) {
+    async fillRegistrationForm(fullName: string, email: string, cpf: string, password: string) {
         await this.fullNameInput.fill(fullName);
         await this.emailInput.fill(email);
         await this.cpfInput.fill(cpf);
         await this.passwordInput.fill(password);
         await this.confirmPasswordInput.fill(password);
+    }
+
+    async clickSubmitButton() {
         await this.submitButton.click();
     }
 
-    async validateSuccessModal(expectedName: string, expectedEmail: string, expectedCpf: string) {
-        // Validações
+    async submitRegistrationForm(fullName: string, email: string, cpf: string, password: string) {
+        await this.fillRegistrationForm(fullName, email, cpf, password);
+        await this.clickSubmitButton();
+    }
+
+    async validateModalContent(expectedName: string, expectedEmail: string, expectedCpf: string) {
         await expect(this.modalTitle).toBeVisible();
         await expect(this.modalTitle).toHaveText('Conta criada com sucesso!');
         await expect(this.modalNameValue).toHaveText(expectedName);
         await expect(this.modalEmailValue).toHaveText(expectedEmail);
         await expect(this.modalCpfValue).toHaveText(expectedCpf);
+    }
 
-        // Ação de fechar
+    async closeSuccessModal() {
         await this.modalCloseButton.click();
-
-        // CORREÇÃO: Espera o overlay do modal desaparecer completamente
         await expect(this.modalOverlay).toBeHidden();
+    }
+
+    async validateSuccessModal(expectedName: string, expectedEmail: string, expectedCpf: string) {
+        await this.validateModalContent(expectedName, expectedEmail, expectedCpf);
+        await this.closeSuccessModal();
     }
 }
