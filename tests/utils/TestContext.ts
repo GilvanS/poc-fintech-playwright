@@ -65,6 +65,7 @@ export class TestContext {
         if (this.currentLoginModel) {
             return this.currentLoginModel;
         }
+        console.warn('[TestContext] Nenhuma massa de login encontrada para o cenário atual. Usando credencial de fallback fixa — verifique se o título do teste segue o padrão CTxx.x ou se o CPF existe em TBL_CENARIOS.');
         return {
             cpf: '11111111111',
             senha: 'admin999'
