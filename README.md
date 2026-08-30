@@ -1,16 +1,16 @@
-# 🚀 POC Fintech - Automação de Testes co Playwright
+# POC Fintech - Automação de Testes com Playwright
 
 > Projeto de automação de testes End-to-End (E2E) para a aplicação Fintech, utilizando **Playwright** com **Node.js**.
 
-![Playwright](https://img.shields.io/badge/-playwright-%232EAD33?style=for-the-badge&logo=playwright&logoColor=white)
-![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
-![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
+![NodeJS](https://img.shields.io/badge/Node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 
-## 📋 Sobre o Projeto
+## Sobre o Projeto
 
 Este repositório contém a suíte de testes automatizados para validar as funcionalidades críticas do sistema Fintech. O foco desta branch é a implementação utilizando **Playwright** com **Node.js**.
 
-### 🌍 Estrutura de Branches (Multilinguagem)
+### Estrutura de Branches (Multilinguagem)
 
 Este projeto serve como base para estudos comparativos e implementações em diferentes linguagens. A organização das branches é a seguinte:
 
@@ -20,23 +20,23 @@ Este projeto serve como base para estudos comparativos e implementações em dif
 | **`java`** | **Java** | Implementação utilizando ecossistema Java (ex: Selenium/Playwright Java). |
 | **`python`** | **Python** | Implementação utilizando ecossistema Python (ex: Playwright Python/Selenium). |
 
-### 📚 Documentação Oficial
+### Documentação Oficial
 
 Para mais detalhes sobre a configuração e comandos do Playwright, consulte a documentação oficial:
 - [Documentação do Playwright (Intro)](https://playwright.dev/docs/intro)
 
 ---
 
-## ⚙️ Pré-requisitos
+## Pre-requisitos
 
 - **[Node.js](https://nodejs.org/)** (LTS recomendado)
 - **Git**
 
-## 🚀 Instalação
+## Instalacao
 
 1. Clone o repositório:
 ```bash
-git clone git@gitlab.com:GilvanS/poc-fintech-playwright.git
+git clone git@github.com:GilvanS/poc-fintech-playwright.git
 ```
 
 2. Acesse a pasta do projeto:
@@ -56,7 +56,7 @@ npx playwright install
 
 ---
 
-## 🏃‍♂️ Como Rodar os Testes
+## Como Rodar os Testes
 
 > Os comandos abaixo podem ser executados via `npx playwright ...` ou pelos atalhos `npm run ...` definidos no `package.json`.
 
@@ -128,7 +128,7 @@ npx playwright test --workers=1
 ---
 
 ### Modo Debug — Passo a passo com DevTools
-Pausa a execução no primeiro passo e abre o Playwright Inspector para avançar manualmente.
+Pausa a execução no primeiro passo ativando o Playwright Inspector.
 ```bash
 npx playwright test --debug
 
@@ -182,7 +182,7 @@ npx playwright test --workers=1
 
 ---
 
-## 📂 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 poc-fintech-playwright/
@@ -193,7 +193,7 @@ poc-fintech-playwright/
 └── README.md            # Documentação
 ```
 
-## 🤝 Contribuição
+## Contribuição
 
 1. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
 2. Commit suas mudanças (`git commit -m 'feat: adiciona novos testes de login'`)
