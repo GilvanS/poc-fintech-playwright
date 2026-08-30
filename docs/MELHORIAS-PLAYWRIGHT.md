@@ -59,6 +59,62 @@ que hoje dependem dele.
   está de fato válido (credenciais de ambiente mudam; não assumir a
   constante do código como fonte de verdade).
 
+### 3. `pages/components/` — Component Objects para UI compartilhada entre páginas
+
+**Referência:** [testdino.com/blog/playwright-page-object-model](https://testdino.com/blog/playwright-page-object-model),
+seção "Modeling reusable components".
+
+**Problema:** o projeto tinha só `tests/pages/*.ts` (uma classe por tela).
+O menu de navegação persistente pós-login (Perfil, Cartões, Shop, Sair do
+App) estava declarado dentro de `DashboardPage.ts`, mas por natureza não é
+conteúdo do Dashboard — é chrome de app que reaparece em qualquer tela
+interna (Cartões, Shop, Perfil, etc.), hoje ainda não modeladas como Page
+Object próprias. Deixar esses locators dentro de `DashboardPage` significa
+duplicá-los quando essas outras páginas forem criadas.
+
+**Correção:** criada `tests/pages/components/NavbarComponent.ts` (Component
+Object) com os locators/ações do menu (`navigateToProfile`,
+`navegarParaCartoes`, `navegarParaShop`, `navegarParaPerfil`, `sairDoApp`).
+`DashboardPage` passou a compor o componente via propriedade pública:
+
+```ts
+// tests/pages/DashboardPage.ts
+import { NavbarComponent } from "./components/NavbarComponent";
+
+export class DashboardPage {
+    readonly navbar: NavbarComponent;
+
+    constructor(page: Page) {
+        this.navbar = new NavbarComponent(page);
+        // ...demais locators específicos do Dashboard
+    }
+}
+```
+
+Call sites passam a acessar via `dashboardPage.navbar.<ação>()` em vez de
+`dashboardPage.<ação>()` (atualizado em `flows/auth.flow.ts`). Métodos que
+validam/agem sobre *conteúdo* de tela (`validateProfileName`,
+`aceitarOfertaShop`) continuaram em `DashboardPage` — não são chrome de
+navegação, são específicos da tela.
+
+**Regra daqui pra frente — quando extrair um Component Object:**
+- Vira componente em `pages/components/` qualquer locator/ação que aparece
+  **igual em mais de uma tela** (navbar, sidebar, modal genérico, header).
+  Se só existe em uma tela hoje, ele fica no Page Object daquela tela até
+  aparecer em uma segunda — não crie componente especulativo.
+  Segue o mesmo princípio de não abstrair antes da necessidade real.
+- O Page Object que usa o componente expõe ele como propriedade pública
+  (`readonly navbar: NavbarComponent`) instanciada no próprio construtor —
+  não via fixture separada. A fixture continua só injetando o Page Object
+  pai; o componente é detalhe de implementação dele.
+- Nome de arquivo/classe no padrão `<Nome>Component.ts` /
+  `<Nome>Component`, dentro de `tests/pages/components/`, com barrel
+  `tests/pages/components/index.ts` espelhando o barrel de `tests/pages/`.
+- Ao mover um método existente pra dentro de um componente, manter o nome
+  do método idêntico quando possível — só muda o caminho de acesso
+  (`page.metodo()` → `page.componente.metodo()`), evitando diff misturado
+  de "mover" com "renomear".
+
 ## O que foi analisado mas **não** alterado (decisão, não bug)
 
 - **`baseURL` aponta direto para `/login`** (`http://localhost:3000/FintechBankApp/login`)

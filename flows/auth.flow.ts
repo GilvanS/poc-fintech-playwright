@@ -20,7 +20,7 @@ export class AuthFlow {
      */
     async loginEValidarPerfil(cpf: string, pass: string, nomeEsperado: string): Promise<void> {
         await this.login(cpf, pass);
-        await this.dashboardPage.navigateToProfile();
+        await this.dashboardPage.navbar.navigateToProfile();
         await this.dashboardPage.validateProfileName(nomeEsperado);
     }
 }
