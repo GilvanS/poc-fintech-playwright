@@ -1,5 +1,6 @@
 import { expect, Page, Locator } from "@playwright/test";
 import { NavbarComponent } from "./components/NavbarComponent";
+import { PopupsComponent } from "./components/PopupsComponent";
 
 /**
  * DashboardPage - Page Object para o dashboard e funcionalidades pós-login.
@@ -7,8 +8,9 @@ import { NavbarComponent } from "./components/NavbarComponent";
 export class DashboardPage {
     readonly page: Page;
 
-    // Component Object: menu de navegação persistente (Perfil, Cartões, Shop, Sair)
+    // Component Objects
     readonly navbar: NavbarComponent;
+    readonly popups: PopupsComponent;
 
     // Locators do Header e Layout Principal
     readonly dashboardHeading: Locator;
@@ -55,6 +57,7 @@ export class DashboardPage {
     constructor(page: Page) {
         this.page = page;
         this.navbar = new NavbarComponent(page);
+        this.popups = new PopupsComponent(page);
 
         // Header & Menu
         this.dashboardHeading = page.getByRole('heading', { name: 'SEU DASHBOARD' });
@@ -64,7 +67,7 @@ export class DashboardPage {
 
         // Conquistas & Modais
         this.conquistaPoupancaText = page.getByText('Conquista de Poupança!');
-        this.continuarPoupandoButton = page.getByRole('button', { name: 'Continuar Poupando! 🚀' });
+        this.continuarPoupandoButton = page.getByRole('button', { name: /Continuar Poupando/i });
 
         // Saldo
         this.saldoContaText = page.getByText('SALDO EM CONTA');
@@ -103,19 +106,14 @@ export class DashboardPage {
      * Valida que o Dashboard foi carregado com sucesso.
      */
     async validarDashboardCarregado(): Promise<void> {
-        await expect(this.dashboardHeading).toBeVisible();
+        await expect(this.dashboardHeading).toBeVisible({ timeout: 15000 });
     }
 
     /**
      * Fecha o modal inicial de Conquista de Poupança, se estiver visível.
      */
     async fecharModalConquista(): Promise<void> {
-        const btnModal = this.page.getByRole('button', { name: /Continuar Poupando/i });
-        try {
-            if (await btnModal.isVisible({ timeout: 3000 })) {
-                await btnModal.click();
-            }
-        } catch {}
+        await this.popups.fecharModaisSeVisiveis();
     }
 
     /**

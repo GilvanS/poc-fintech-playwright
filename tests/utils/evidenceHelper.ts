@@ -13,7 +13,7 @@ export interface EvidenceData {
     inicio: string;
     fim: string;
     data: string;
-    requestMethod?: string;
+    navegador?: string;
     requestUri?: string;
     headers?: string;
     requestBody?: string;
@@ -21,6 +21,28 @@ export interface EvidenceData {
     responseBody?: string;
     idExecucao?: string;
     massaDeTeste?: string;
+}
+
+const STATUS_COLORS: Record<'PASSED' | 'FAILED' | 'NA' | 'OTHER', string> = {
+    PASSED: '008000',
+    FAILED: 'C00000',
+    NA: '808080',
+    OTHER: 'ED7D31',
+};
+
+function corDoStatus(status: string): string {
+    const normalizado = (status || '').trim().toUpperCase();
+    if (normalizado === 'PASSED') return STATUS_COLORS.PASSED;
+    if (normalizado === 'FAILED') return STATUS_COLORS.FAILED;
+    if (normalizado === 'N/A' || normalizado === 'NA') return STATUS_COLORS.NA;
+    return STATUS_COLORS.OTHER;
+}
+
+function escapeXml(text: string): string {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }
 
 export interface ScreenshotStep {
@@ -89,14 +111,6 @@ export class EvidenceHelper {
                 modules: [imageModule]
             });
 
-            // Status colorido no docx: só uma das 4 seções condicionais
-            // (isPassed/isFailed/isNA/isOther) renderiza, cada uma com sua cor.
-            const statusNormalizado = (data.status || '').trim().toUpperCase();
-            const isPassed = statusNormalizado === 'PASSED';
-            const isFailed = statusNormalizado === 'FAILED';
-            const isNA = statusNormalizado === 'N/A' || statusNormalizado === 'NA';
-            const isOther = !isPassed && !isFailed && !isNA;
-
             const templateData = {
                 projeto: this.projeto,
                 data: data.data,
@@ -105,11 +119,7 @@ export class EvidenceHelper {
                 inicio: data.inicio,
                 fim: data.fim,
                 status: data.status,
-                isPassed,
-                isFailed,
-                isNA,
-                isOther,
-                requestMethod: data.requestMethod || 'WEB',
+                navegador: data.navegador || 'N/A',
                 idExecucao: data.idExecucao || this.currentIdExecucao || `EXEC_${Date.now()}`,
                 massaDeTeste: data.massaDeTeste || this.currentMassaDeTeste,
                 screenshots: this.screenshots.map(s => ({
@@ -120,7 +130,19 @@ export class EvidenceHelper {
 
             doc.render(templateData);
 
-            const buf = doc.getZip().generate({
+            // Colore o valor de Status no XML já renderizado (template mantém
+            // apenas {{status}} limpo — a cor é aplicada aqui, não no template).
+            const renderedZip = doc.getZip();
+            const documentXml = renderedZip.file('word/document.xml')!.asText();
+            const statusRun = `<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:b/><w:i/><w:iCs/></w:rPr><w:t xml:space="preserve">${escapeXml(data.status)}</w:t></w:r>`;
+            const statusRunColorido = `<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:b/><w:i/><w:iCs/><w:color w:val="${corDoStatus(data.status)}"/></w:rPr><w:t xml:space="preserve">${escapeXml(data.status)}</w:t></w:r>`;
+            if (documentXml.includes(statusRun)) {
+                renderedZip.file('word/document.xml', documentXml.replace(statusRun, statusRunColorido));
+            } else {
+                logger.error('⚠️ Não encontrou o run de Status no docx renderizado — cor não aplicada.');
+            }
+
+            const buf = renderedZip.generate({
                 type: 'nodebuffer',
                 compression: 'DEFLATE',
             });

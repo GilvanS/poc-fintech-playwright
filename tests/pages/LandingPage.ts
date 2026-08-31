@@ -11,7 +11,7 @@ export class LandingPage {
     private readonly loginBrand: Locator;
     private readonly loginTitle: Locator;
     private readonly signupPrompt: Locator;
-    private readonly cpfInput: Locator;
+    readonly cpfInput: Locator;
     private readonly passwordInput: Locator;
     private readonly submitLoginButton: Locator;
     private readonly alertMessage: Locator;

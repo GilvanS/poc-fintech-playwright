@@ -1,7 +1,7 @@
 import { test as baseTest, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
-import { LandingPage, DashboardPage, CadastroPage } from '../tests/pages';
+import { LandingPage, DashboardPage, CadastroPage, FaturasPage } from '../tests/pages';
 import { AuthFlow, CadastroFlow, DashboardFlow } from '../flows';
 import { TestContext } from '../tests/utils/TestContext';
 import { LoginModel } from '../tests/models/LoginModel';
@@ -14,6 +14,7 @@ type MyFixtures = {
     landingPage: LandingPage;
     dashboardPage: DashboardPage;
     cadastroPage: CadastroPage;
+    faturasPage: FaturasPage;
     authFlow: AuthFlow;
     cadastroFlow: CadastroFlow;
     dashboardFlow: DashboardFlow;
@@ -34,6 +35,10 @@ export const test = baseTest.extend<MyFixtures>({
 
     cadastroPage: async ({ page }, use) => {
         await use(new CadastroPage(page));
+    },
+
+    faturasPage: async ({ page }, use) => {
+        await use(new FaturasPage(page));
     },
 
     authFlow: async ({ landingPage, dashboardPage }, use) => {
@@ -93,13 +98,19 @@ export const test = baseTest.extend<MyFixtures>({
         }
         
         // Gerar evidência
+        const nomesNavegador: Record<string, string> = {
+            chromium: 'Chrome',
+            firefox: 'Firefox',
+            webkit: 'Safari',
+        };
         await EvidenceHelper.generateEvidence({
             feature: testInfo.file.split(/[\\/]/).pop() || 'N/A',
             scenario: testInfo.title,
             status: status,
             inicio: startTime.toLocaleString('pt-BR'),
             fim: endTime.toLocaleString('pt-BR'),
-            data: new Date().toLocaleDateString('pt-BR')
+            data: new Date().toLocaleDateString('pt-BR'),
+            navegador: nomesNavegador[testInfo.project.name] || testInfo.project.name
         }, testInfo.title);
     }, { auto: true }]
 });
