@@ -14,14 +14,22 @@ export class NavbarComponent {
     constructor(page: Page) {
         this.page = page;
         this.popups = new PopupsComponent(page);
-        // Os botões da barra de navegação inferior (ícone Lucide + legenda) não
-        // expõem role="button" na árvore de acessibilidade (fica "generic"),
-        // então getByRole('button', ...) nunca casa. Usa nav + texto (CSS puro).
-        this.inicioButton = page.locator('nav button', { hasText: 'Início' });
-        this.cartoesButton = page.locator('nav button', { hasText: 'Cartões' });
-        this.faturasButton = page.locator('nav button', { hasText: 'Faturas' });
-        this.shopButton = page.locator('nav button', { hasText: 'Shop' });
-        this.profileButton = page.locator('nav button', { hasText: 'Perfil' });
+        // A página hoje tem MAIS DE UM <nav> (nav de quick-actions dentro do <main> + a
+        // navbar inferior #bottom-nav) e os botões JÁ expõem role="button" (snapshot de
+        // 2026-09-15: navigation com buttons "Início"/"Faturas"/"Limites"/"Shop"/"Perfil")
+        // — o antigo locator('nav button', { hasText: ... }) casava 2 elementos e quebrava
+        // no strict mode. Escopar por #bottom-nav + getByRole resolve os dois problemas.
+        // Nota: o texto "Cartões" foi substituído por "Limites" na navbar atual — o locator
+        // fica só por compatibilidade (nenhum step chama navegarParaCartoes hoje).
+        const bottomNav = page.locator('#bottom-nav');
+        this.inicioButton = bottomNav.getByRole('button', { name: 'Início' });
+        this.cartoesButton = bottomNav.getByRole('button', { name: 'Cartões' });
+        this.faturasButton = bottomNav.getByRole('button', { name: 'Faturas' });
+        this.shopButton = bottomNav.getByRole('button', { name: 'Shop' });
+        // "Meu Perfil" do menu lateral (complementary), não o "Perfil" da navbar inferior —
+        // esse último fica atrás de um card de gráfico (Recharts) em algumas telas. O do
+        // menu lateral não tem esse problema (confirmado via codegen).
+        this.profileButton = page.getByRole('button', { name: 'Meu Perfil' });
         this.sairButton = page.locator('nav button', { hasText: 'Sair' });
     }
 
