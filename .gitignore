@@ -161,3 +161,6 @@ ruvector.db*
 .claude-flow/
 .swarm/
 .mcp.json
+
+# Artefatos de runtime locais (allure-results do SummaryReporter)
+/output/
