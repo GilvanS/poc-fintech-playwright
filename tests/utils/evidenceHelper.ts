@@ -4,7 +4,12 @@ import ImageModule from 'docxtemplater-image-module-free';
 import fs from 'fs';
 import path from 'path';
 import { Page } from '@playwright/test';
+import { attachmentPath, ContentType } from 'allure-js-commons';
 import { logger } from './logger';
+
+// docxtemplater-image-module-free não publica tipos próprios nem tem pacote @types/ —
+// sem isso o import acima quebra a compilação.
+declare module 'docxtemplater-image-module-free';
 
 export interface EvidenceData {
     feature: string;
@@ -83,7 +88,15 @@ export class EvidenceHelper {
             const filePath = path.join(this.tempDir, fileName);
             await page.screenshot({ path: filePath, fullPage: true });
             this.screenshots.push({ title, imagePath: filePath });
-            logger.info(`📸 Capturado print: "${title}" -> ${filePath}`);
+
+            // Mesma screenshot que alimenta o DOCX também vira anexo do step atual no
+            // Allure — try/catch separado: falha de attachment do Allure (ex: reporter
+            // não ativo nessa run) nunca pode derrubar a captura de evidência do DOCX.
+            try {
+                await attachmentPath(title, filePath, ContentType.PNG);
+            } catch (allureError) {
+                logger.error(`⚠️ Erro ao anexar screenshot "${title}" no Allure: ${allureError}`);
+            }
         } catch (error) {
             logger.error(`⚠️ Erro ao capturar screenshot para "${title}": ${error}`);
         }

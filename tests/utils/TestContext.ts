@@ -1,11 +1,9 @@
-import { getCenarioData, getMassaCadastroById, ScenarioData } from './excelReader';
-import { LoginModel } from '../models/LoginModel';
-import { CadastroModel } from '../models/CadastroModel';
+import { getCenarioData, ScenarioData } from './excelReader';
+import { LoginModel } from '../massa-types/LoginModel';
 
 export class TestContext {
     private static currentScenarioData: ScenarioData | null = null;
     private static currentLoginModel: LoginModel | null = null;
-    private static currentCadastroModel: CadastroModel | null = null;
 
     /**
      * Extrai a tag de ID do cenário do título do teste (ex: 'CT01.2' de 'CT01.2 - Fazer login como Admin')
@@ -33,22 +31,6 @@ export class TestContext {
                 idUsuario: scenario.ID_MASSA ? String(scenario.ID_MASSA) : undefined
             };
 
-            // Se o cenário possuir ID_MASSA, busca também os dados cadastrais em TBL_CADASTRO
-            if (scenario.ID_MASSA) {
-                const cadastroData = getMassaCadastroById(String(scenario.ID_MASSA));
-                if (cadastroData) {
-                    this.currentCadastroModel = {
-                        seq: cadastroData.SEQ,
-                        idMassa: String(cadastroData.ID_MASSA),
-                        nomeCompleto: String(cadastroData.NOME_COMPLETO || ''),
-                        nomeUsuario: cadastroData.NOME_USUARIO ? String(cadastroData.NOME_USUARIO) : undefined,
-                        email: String(cadastroData.CPF || ''), // Em alguns cadastros o email/login fica no campo CPF/EMAIL
-                        senha: String(cadastroData.SENHA || ''),
-                        cpf: String(cadastroData.CPF || '')
-                    };
-                }
-            }
-
             return scenario;
         } catch (error) {
             console.warn(`[TestContext] Não foi possível carregar massa automática para o título: "${testTitle}". ${error}`);
@@ -73,13 +55,6 @@ export class TestContext {
     }
 
     /**
-     * Retorna os dados do CadastroModel do contexto atual.
-     */
-    static getCadastroModel(): CadastroModel | null {
-        return this.currentCadastroModel;
-    }
-
-    /**
      * Retorna os dados crus do cenário carregados do Excel.
      */
     static getScenarioData(): ScenarioData | null {
@@ -92,6 +67,5 @@ export class TestContext {
     static clearContext(): void {
         this.currentScenarioData = null;
         this.currentLoginModel = null;
-        this.currentCadastroModel = null;
     }
 }

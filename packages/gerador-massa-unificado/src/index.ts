@@ -1,0 +1,11 @@
+export { gerarMassaUnificada } from './service/geradorService';
+export { gerarDados, habilitarModoOffline } from './generators/fakerApiData';
+export type { DadosFaker } from './generators/fakerApiData';
+export { gerarUsuario } from './generators/usuarioGenerator';
+export type { Usuario } from './generators/usuarioGenerator';
+export { gerarProduto } from './generators/produtoGenerator';
+export type { Produto } from './generators/produtoGenerator';
+export { gerarArtigo } from './generators/artigoGenerator';
+export type { Artigo } from './generators/artigoGenerator';
+export { gerarCpf, gerarCnpj, gerarCep } from './generators/documentosGenerator';
+export { gerarSenhaCustomizada } from './generators/passwordGenerator';

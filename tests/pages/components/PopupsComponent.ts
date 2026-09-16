@@ -35,5 +35,13 @@ export class PopupsComponent {
             await btnEntendi.click({ force: true }).catch(() => {});
             await this.page.waitForTimeout(300);
         }
+
+        // 4. Botão 'Dispensar' (card "Conheça o modo Analytics", só na primeira visita ao
+        // Dashboard — o container do card intercepta clique na navbar enquanto visível)
+        const btnDispensarAnalytics = this.page.getByRole('button', { name: 'Dispensar' }).first();
+        if (await btnDispensarAnalytics.isVisible().catch(() => false)) {
+            await btnDispensarAnalytics.click({ force: true }).catch(() => {});
+            await this.page.waitForTimeout(300);
+        }
     }
 }

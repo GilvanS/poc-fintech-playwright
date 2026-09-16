@@ -2,13 +2,30 @@ import { defineConfig, devices } from '@playwright/test';
 import { defineBddConfig } from 'playwright-bdd';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 
-// Carrega as variáveis de ambiente do arquivo .env
+// Carrega as variáveis de ambiente do arquivo .env (execução local, default).
 dotenv.config({ path: path.resolve(__dirname, '.env') });
+
+// TEST_ENV=staging|production carrega .env.<TEST_ENV> por cima, sobrescrevendo só o que
+// esse arquivo definir (override: true) — mesmo padrão do getEnv() do
+// ortoniKC/Playwright_Cucumber_TS, adaptado às variáveis TEST_* já usadas aqui. Sem
+// TEST_ENV, comportamento idêntico a antes (só .env local).
+if (process.env.TEST_ENV) {
+  const envFile = path.resolve(__dirname, `.env.${process.env.TEST_ENV}`);
+  if (!fs.existsSync(envFile)) {
+    throw new Error(`TEST_ENV="${process.env.TEST_ENV}" mas ${envFile} não existe.`);
+  }
+  dotenv.config({ path: envFile, override: true });
+}
 
 const bddTestDir = defineBddConfig({
   features: 'tests/features/**/*.feature',
-  steps: ['tests/steps/**/*.ts', 'fixtures/testFixture.ts'],
+  // Steps ficam flat em tests/steps/ — padrão Node/Playwright (Page Objects em pages/,
+  // locators em locators/, steps em steps/), sem agrupar por feature. hooks.ts não é
+  // step (BeforeStep/AfterStep, não Given/When/Then) — mora em tests/hooks/, com
+  // entrada própria aqui (não casa com o wildcard *.steps.ts).
+  steps: ['tests/steps/**/*.steps.ts', 'tests/hooks/hooks.ts', 'fixtures/testFixture.ts'],
   outputDir: '.features-gen',
 });
 
@@ -25,11 +42,28 @@ const validProjectNames = ['chromium', 'bdd', 'bdd-headed', 'edge', 'firefox'];
 const projectAliases: Record<string, string[]> = {
   all: validProjectNames,
 };
-const selectedProjectNames = (process.env.TEST_PROJECT ?? 'bdd')
-  .split(',')
+
+// Projetos passados explicitamente via CLI (--project=xxx) — descobertos ANTES de decidir
+// a lista efetiva, porque a flag da linha de comando tem prioridade TOTAL sobre TEST_PROJECT
+// (mesma regra do próprio Playwright: CLI vence env/config). Sem essa prioridade, rodar só
+// `--project=bdd-headed --headed` ainda contava o TEST_PROJECT default ("bdd") junto no
+// cálculo de "quantos navegadores estão visíveis" (windowArgsFor), fazendo achar que 2
+// navegadores rodavam ao mesmo tempo e ativando o modo lado a lado — janela cortada pela
+// metade da tela em vez de maximizada.
+const cliProjectNames = process.argv
+  .filter((arg) => arg.startsWith('--project='))
+  .flatMap((arg) => arg.slice('--project='.length).split(','))
   .map((name) => name.trim())
-  .filter(Boolean)
-  .flatMap((name) => projectAliases[name] ?? [name]);
+  .filter(Boolean);
+
+const selectedProjectNames = cliProjectNames.length > 0
+  ? cliProjectNames
+  : (process.env.TEST_PROJECT ?? 'bdd')
+      .split(',')
+      .map((name) => name.trim())
+      .filter(Boolean)
+      .flatMap((name) => projectAliases[name] ?? [name]);
+
 const invalidProjects = selectedProjectNames.filter((name) => !validProjectNames.includes(name));
 if (invalidProjects.length > 0) {
   throw new Error(
@@ -38,15 +72,6 @@ if (invalidProjects.length > 0) {
   );
 }
 
-// Projetos passados explicitamente via CLI (--project=xxx): entram na lista junto com os do
-// TEST_PROJECT, pra scripts que já fixam o navegador (--project=edge, --project=chromium...)
-// continuarem funcionando mesmo com o default TEST_PROJECT=bdd — o filtro da CLI do Playwright
-// escolhe o vencedor. Nomes desconhecidos via CLI o Playwright valida sozinho.
-const cliProjectNames = process.argv
-  .filter((arg) => arg.startsWith('--project='))
-  .flatMap((arg) => arg.slice('--project='.length).split(','))
-  .map((name) => name.trim())
-  .filter(Boolean);
 if (cliProjectNames.length > 0) {
   process.env.PLAYWRIGHT_CLI_PROJECTS = cliProjectNames.join(',');
 }
@@ -56,7 +81,7 @@ const envCliProjects = (process.env.PLAYWRIGHT_CLI_PROJECTS ?? '')
   .filter(Boolean);
 
 const effectiveProjectNames = Array.from(
-  new Set([...selectedProjectNames, ...cliProjectNames, ...envCliProjects]),
+  new Set([...selectedProjectNames, ...envCliProjects]),
 );
 
 /**
@@ -202,7 +227,12 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: TEST_WORKERS ?? (process.env.CI ? 1 : undefined),
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: [['list'], ['html'], ['./tests/utils/summaryReporter.ts']],
+  reporter: [
+    ['list'],
+    ['html'],
+    ['./tests/utils/SummaryReporter.ts'],
+    ['allure-playwright', { resultsDir: 'output/allure-results', detail: true, suiteTitle: false }],
+  ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. Configurável via TEST_BASE_URL. */

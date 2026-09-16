@@ -1,29 +1,20 @@
-# POC Fintech - Automação de Testes com Playwright
+# POC Fintech - Automação de Testes com Playwright + Cucumber (BDD)
 
-> Projeto de automação de testes End-to-End (E2E) para a aplicação Fintech, utilizando **Playwright** com **Node.js**.
+> Suíte de testes End-to-End (E2E) para o **FintechBankApp**, em **Playwright** + **playwright-bdd** (Cucumber/Gherkin) com **Node.js/TypeScript**.
 
 ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
+![Cucumber](https://img.shields.io/badge/Cucumber-23D96C?style=for-the-badge&logo=cucumber&logoColor=white)
 ![NodeJS](https://img.shields.io/badge/Node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 
 ## Sobre o Projeto
 
-Este repositório contém a suíte de testes automatizados para validar as funcionalidades críticas do sistema Fintech. O foco desta branch é a implementação utilizando **Playwright** com **Node.js**.
-
-### Estrutura de Branches (Multilinguagem)
-
-Este projeto serve como base para estudos comparativos e implementações em diferentes linguagens. A organização das branches é a seguinte:
-
-| Branch | Tecnologia | Descrição |
-| :--- | :--- | :--- |
-| **`main`** (Atual) | **Playwright + Node.js** | Stack principal de automação com JavaScript/TypeScript. |
-| **`java`** | **Java** | Implementação utilizando ecossistema Java (ex: Selenium/Playwright Java). |
-| **`python`** | **Python** | Implementação utilizando ecossistema Python (ex: Playwright Python/Selenium). |
+Testes automatizados das jornadas críticas do FintechBankApp: login, cadastro de novo usuário, dashboard e pagamento de fatura. A suíte está em transição de specs `.spec.ts` (Playwright puro) para cenários `.feature` em Gherkin, rodados via **playwright-bdd** — mesmo motor de execução do Playwright, com os cenários escritos em português natural.
 
 ### Documentação Oficial
 
-Para mais detalhes sobre a configuração e comandos do Playwright, consulte a documentação oficial:
-- [Documentação do Playwright (Intro)](https://playwright.dev/docs/intro)
+- [Documentação do Playwright](https://playwright.dev/docs/intro)
+- [playwright-bdd](https://vitalets.github.io/playwright-bdd/)
 
 ---
 
@@ -31,172 +22,394 @@ Para mais detalhes sobre a configuração e comandos do Playwright, consulte a d
 
 - **[Node.js](https://nodejs.org/)** (LTS recomendado)
 - **Git**
+- FintechBankApp rodando localmente: **WEB** em `http://localhost:3000` e **API** em `http://localhost:3001`
 
-## Instalacao
+## Instalação
 
-1. Clone o repositório:
 ```bash
 git clone git@github.com:GilvanS/poc-fintech-playwright.git
-```
-
-2. Acesse a pasta do projeto:
-```bash
 cd poc-fintech-playwright
-```
-
-3. Instale as dependências:
-```bash
 npm install
-```
-
-4. Instale os navegadores do Playwright:
-```bash
 npx playwright install
 ```
 
 ---
 
+## Arquitetura BDD
+
+Organização **por tipo de arquivo** (padrão Node/Playwright, não por feature):
+`locators/` (elemento da tela), `pages/` (ações + validações + composição de
+negócio, tudo numa classe só) e `steps/` (glue code do Gherkin) ficam cada um
+na sua pasta, flat — sem subpasta por feature. Do Digio/Uber (projetos mobile
+Java/Appium/Cucumber do time) o projeto herda só convenções que não são de
+estrutura de pasta: nomear a tela no texto do step, o padrão de log/evidência
+(Hooks.java) e a organização da massa em Excel — ver seções abaixo.
+
+```
+tests/
+├── features/             # SÓ Gherkin (.feature) — a fonte da verdade do QUE é testado
+│   ├── login.feature
+│   ├── cadastro.feature
+│   ├── pix.feature
+│   └── dashboard.feature   # em revisão — telas mudaram, ver "Status atual" abaixo
+├── steps/                 # Glue code do Gherkin — flat, 1 arquivo por feature + hooks globais
+│   ├── login.steps.ts
+│   ├── cadastro.steps.ts
+│   ├── pix.steps.ts
+│   ├── dashboard.steps.ts
+│   └── hooks.steps.ts        # BeforeStep/AfterStep globais (log + print automático)
+├── pages/                 # Page Objects — 1 classe por tela: ações/validações atômicas
+│   │                      # + composição de negócio (setup multi-passo), tudo junto
+│   ├── LandingPage.ts        # tela de login (compartilhada por login E cadastro)
+│   ├── CadastroPage.ts
+│   ├── PixPage.ts
+│   ├── DashboardPage.ts
+│   ├── FaturasPage.ts        # usada só pelo e2e/ por ora
+│   └── components/            # Navbar, Popups — reaproveitados por vários Pages
+├── locators/               # 1 classe de locators por Page (mesmo nome, sufixo Locators)
+│   ├── LoginLocators.ts
+│   ├── CadastroLocators.ts
+│   ├── PixLocators.ts
+│   ├── DashboardLocators.ts
+│   └── FaturasLocators.ts
+├── massa-types/            # Interfaces de dado de UI (LoginModel/CadastroModel) — tipam
+│                           # a massa vinda do Excel pra preencher formulário, NÃO é DTO de API
+├── utils/                  # Tudo que não é Page/Locator/Step/Flow: logger, evidenceHelper,
+│                           # TestContext, excelReader, massaCadastroXlsx, massaPix,
+│                           # excelTableAppender.ts (edição crua do .xlsx) e summaryReporter.ts
+│                           # (plugin do Playwright)
+├── flows/                  # Composição CROSS-Page (usa 2+ Page Objects juntos)
+│   └── auth.flow.ts          # AuthFlow: jornada de login (LandingPage + DashboardPage)
+└── e2e/                    # Specs legados .spec.ts, ainda não convertidos pra BDD
+    └── pagamentoFatura.spec.ts   # único fluxo sem .feature próprio ainda
+
+fixtures/testFixture.ts  # Fixture ÚNICA do projeto: 1 fixture por Page Object (landingPage/
+                          # cadastroPage/pixPage/dashboardPage/faturasPage) + a camada composta
+                          # cross-feature (authFlow, massa, logger automático), tudo num
+                          # .extend() só em cima do test do playwright-bdd
+packages/gerador-massa-unificado/  # Pacote local (npm workspace) — gerador de dados sintéticos
+  └── scripts/              # Scripts de massa (gerar/corrigir/formatar) — ver "Massa de Dados" abaixo
+data/MassaDados.xlsx      # Massa de dados real usada pelos testes (ver seção própria abaixo)
+```
+
+`tests/flows/auth.flow.ts` (`AuthFlow`) é a única composição CROSS-Page do
+projeto — usa `LandingPage` + `DashboardPage` juntos pra jornada de login — por
+isso não cabe dentro de nenhum `Page` específico e ganha pasta própria
+(`flows/`), separada de `utils/` (que é infra, não lógica de teste).
+
+**Como um `.feature` vira teste executável:** `playwright.config.ts` declara `defineBddConfig({ features: 'tests/features/**/*.feature', steps: [...] })`, que gera specs `.spec.js` dentro de `.features-gen/` (pasta gerada, não versionada) — é isso que o Playwright de fato roda. Sempre que um `.feature` ou step muda, rode `npm run bdd:gen` antes de testar (os scripts `npm run test:bdd*` já fazem isso sozinhos).
+
+### Pipeline de execução (do Gherkin ao navegador)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    1. ESPECIFICAÇÃO (BDD)                                │
+│   tests/features/*.feature — Cenários em Gherkin (Given, When, Then)     │
+└────────────────────────────────────┬──────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│              2. GERADOR PLAYWRIGHT-BDD ("npm run bdd:gen")               │
+│   Converte Gherkin em specs nativas executáveis → .features-gen/         │
+└────────────────────────────────────┬──────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│           3. CONFIGURAÇÃO & SELEÇÃO DE NAVEGADOR                         │
+│   playwright.config.ts — lê TEST_PROJECT/TEST_ZOOM/TEST_WORKERS (.env)   │
+│   e filtra quais projects sobem: chromium | bdd | bdd-headed | edge |    │
+│   firefox (default: só "bdd", headless)                                  │
+└────────────────────────────────────┬──────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│              4. STEP DEFINITIONS (Glue Code) + HOOKS GLOBAIS              │
+│   tests/steps/*.steps.ts — mapeia texto do .feature pra ação do Page      │
+│   tests/steps/hooks.steps.ts — BeforeStep (log ▶️) / AfterStep (print)    │
+│   rodam pra QUALQUER .feature, sem precisar chamar nada manualmente      │
+└────────────────────────────────────┬──────────────────────────────────────┘
+                                     │ injeta fixtures
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│         5. FIXTURES (Injeção de Dependência) — fixtures/testFixture.ts   │
+│   Instancia Page Objects e massa de dados; expõe tudo pros steps via     │
+│   desestruturação: async ({ dashboardPage, authFlow, loginModel }) => .. │
+└────────────────────────────────────┬──────────────────────────────────────┘
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│              6. PAGE OBJECTS (ações + validações + negócio)              │
+│   tests/pages/<Tela>Page.ts — 1 classe por tela: ações/validações        │
+│   atômicas (1 clique, 1 preenchimento) + composição de negócio (setup    │
+│   multi-passo, ex: DashboardPage.inicializarDashboard() = validar        │
+│   carregado + fechar modal). tests/utils/auth.flow.ts (AuthFlow) é a     │
+│   única composição CROSS-Page (Landing + Dashboard). components/         │
+│   (Navbar, Popups) são reaproveitados por vários Pages.                  │
+└──────────┬──────────────────────────────────────────────────────────────┘
+           │ usa locators de tests/locators/<Tela>Locators.ts
+           ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                  7. MASSA DE DADOS + EVIDÊNCIA                           │
+│   data/MassaDados.xlsx (via TestContext.ts / massaCadastroXlsx.ts)       │
+│   alimenta CPF/senha/dados do cenário → resultado de cada step vira      │
+│   screenshot automático → evidenceHelper.ts monta o DOCX em evidences/   │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Locators separados, ações + negócio no Page
+
+```
+              ┌───────────────────────────┐
+              │   fixtures/testFixture.ts  │
+              │   (injeta instâncias já    │
+              │    prontas pros steps)     │
+              └─────────────┬─────────────┘
+                            │
+                            ▼
+              ┌───────────────────────────┐              ┌──────────────────────────┐
+              │   <Tela>Page.ts             │◄────usa──────│   <Tela>Locators.ts       │
+              │   (1 classe por tela)       │              │   (1 classe por tela,     │
+              │                             │              │    SÓ Locator, sem ação)  │
+              │   ações/validações          │              └──────────────────────────┘
+              │     atômicas (1 clique,     │
+              │     1 preenchimento)        │
+              │   + composição de negócio   │
+              │     (setup multi-passo:     │
+              │      DashboardPage.         │
+              │      inicializarDashboard() │
+              │      = validar carregado +  │
+              │      fechar modal +         │
+              │      fechar painel Saúde    │
+              │      Financeira)            │
+              └─────────────┬───────────────┘
+                            │ herda componentes
+                            ▼
+              ┌───────────────────────────┐
+              │   components/               │
+              │   NavbarComponent            │
+              │   PopupsComponent            │  ← reaproveitados por VÁRIOS Pages
+              └───────────────────────────┘
+
+Regra do projeto: locators ficam SEMPRE numa classe própria em tests/locators/
+(POM clássico) — o Page correspondente recebe essa classe no construtor
+(this.locators) e concentra TUDO que é comportamento: ação atômica E
+composição de negócio, sem uma 3ª camada "Flow" separada. Steps chamam método
+do Page direto pra ação isolada e rastreável (1 linha = 1 print de evidência,
+ex: cadastro.steps.ts → cadastroPage.X()) e também pra composites de SETUP
+que não fazem sentido virar step próprio (ex: "o dashboard está inicializado"
+→ dashboardPage.inicializarDashboard()). A única exceção cross-Page é
+AuthFlow (tests/utils/auth.flow.ts), que compõe Landing + Dashboard pra
+jornada de login.
+```
+
+### Convenção: sempre nomear a tela no step
+
+Regra do projeto (mesmo princípio do `LoginSteps.java` dos projetos mobile Digio/Uber —
+`"preencho o campo 'CPF' na tela 'Login'"`): todo step de ação/validação termina
+identificando a tela onde acontece. Evita duas coisas ao mesmo tempo — steps
+ambíguos ("preencho o campo CPF" poderia ser login OU cadastro) e colisão de
+step definition (duas features com o mesmo texto exato quebram o `bddgen` com
+"Multiple definitions matched scenario step").
+
+| Feature | Qualificador usado | Exemplo |
+|---|---|---|
+| `login.feature` | `no modal de login` | `eu preencho o campo "CPF" com o CPF do cenário no modal de login` |
+| `cadastro.feature` | `na tela de Cadastro` | `eu preencho o campo "CPF" com o CPF do cenário na tela de Cadastro` |
+| `pix.feature` | `na Área PIX` | `eu preencho a chave Pix com os dados do cenário na Área PIX` |
+| `dashboard.feature` | `no Dashboard` | `eu confirmo o pagamento no Dashboard` |
+
+Pra uma feature nova: escolha um qualificador (o nome da tela/modal/área como o
+usuário a reconhece), aplique em TODO step novo daquela tela — incluindo os
+`Then` de validação, não só os `When` de ação — e confira com `npm run bdd:gen`
+que não apareceu "Multiple definitions matched scenario step" (colisão com
+step de outra feature).
+
+**Log e evidência são automáticos — sem código por step.** `hooks.steps.ts` tem 2 hooks globais que valem pra QUALQUER `.feature` novo, sem precisar chamar nada manualmente:
+- `BeforeStep` loga o texto de cada step Gherkin (`▶️  <texto do step>`).
+- `AfterStep` tira um screenshot depois de cada step, anexado automaticamente no relatório DOCX gerado ao fim do cenário (`evidences/`, via `evidenceHelper.ts` + `docxtemplater`).
+
+Cada cenário começa com um cabeçalho padronizado no log (massa carregada → separador `Execucao/Feature/UUID` → `Iniciando execução`), montado pela fixture `testLogger` (`fixtures/testFixture.ts`).
+
+---
+
+## Massa de Dados (`data/MassaDados.xlsx`)
+
+3 abas, cada uma formatada como **Tabela do Excel** (filtro + listras — Ctrl+T), pra facilitar consulta/filtro manual:
+
+| Aba | Uso |
+|---|---|
+| `TBL_CENARIOS` | 1 linha por cenário de **login/dashboard/fatura** (`CT01.x`, `CT03.1`, `cadastrar`) — CPF/senha/saldo fixos, editados à mão. Quem decide qual massa cada cenário usa é quem edita a planilha, não o código. |
+| `TBL_CADASTRO` | Pool de candidatos pra teste de **cadastro** (nome/email/CPF/senha ainda não registrados no app). Prefixo `C_` no `ID_MASSA` (ex: `C_0021`) diferencia esse pool das massas de `TBL_CENARIOS`. |
+| `TBL_MASSA_CADASTRADA` | Registro de quem já foi cadastrado de verdade (gravado automaticamente após o modal de sucesso do cadastro confirmar — nunca antes). `ID_MASSA` aqui vem SEM o prefixo `C_` (uma vez cadastrada, a massa "gradua" pra massa normal). |
+
+**Regra do cenário de cadastro:** `TBL_CENARIOS`/linha `cadastrar` aponta um `ID_MASSA` fixo de `TBL_CADASTRO`. Se essa massa já estiver em `TBL_MASSA_CADASTRADA` (já foi usada), o teste **falha com erro explícito** sugerindo a próxima massa livre — nunca escolhe outra sozinho. Pra gerar mais massa de cadastro: `npm run massa:cadastro -- 10`.
+
+**Preservação da formatação:** escritas nessas abas (`registrarMassaCadastrada`, `gerarMassaCadastro.ts`) usam `tests/utils/excelTableAppender.ts` — acrescenta linha via edição direta do XML do `.xlsx` (zip), nunca reescreve o workbook inteiro. Isso preserva a Tabela do Excel e todo o resto do arquivo intacto; a biblioteca `xlsx` (SheetJS free) usada só pra LEITURA não sabe re-emitir Tabelas do Excel na escrita, então qualquer script que reescreva o workbook inteiro com `XLSX.writeFile()` apagaria a formatação — `packages/gerador-massa-unificado/scripts/corrigirTblCadastro.ts` (migração pontual já aplicada) já foi corrigido pra chamar `formatarTabelas()` automaticamente depois, restaurando a formatação sozinho se for rodado de novo.
+
+---
+
 ## Como Rodar os Testes
 
-> Os comandos abaixo podem ser executados via `npx playwright ...` ou pelos atalhos `npm run ...` definidos no `package.json`.
+### Suíte BDD completa (recomendado)
 
----
-
-### Execução padrão — Headless (sem UI)
-Roda todos os testes no terminal, sem abrir o navegador. Modo padrão para CI/CD.
 ```bash
-npx playwright test
-# ou
-npm test
+npm run massa:cadastro -- 5 # gera 5 massas de cadastro novas (TBL_CADASTRO)
+npm run test:bdd            # headless
+npm run test:bdd:headed     # navegador visível, Chrome maximizado, 1 worker
 ```
 
-### Execução com navegador visível — Headed
-Abre o navegador durante a execução. Útil para observar o fluxo do teste em tempo real.
+### Testes por Feature
+
+Padrão único pra todas as features: `bdd:<tag>` (headless) e `bdd:<tag>:headed` (navegador
+visível) — `<tag>` é sempre o nome da tag `@Feature` em minúsculo, sem conjugação (por isso
+`bdd:cadastro`, não `bdd:cadastrar`).
+
 ```bash
-npx playwright test --headed
-# ou
-npm run test:headed
+npm run bdd:login             # headless — os 6 cenários @Login (CT01.1 a CT01.6)
+npm run bdd:login:headed      # navegador visível, Chrome maximizado, 1 worker
+
+npm run bdd:cadastro          # headless — @Cadastro (CT00 completo + CT00.1-.5 campo obrigatório)
+npm run bdd:cadastro:headed
+
+npm run bdd:pix               # headless — @Pix (CT02.1-.3)
+npm run bdd:pix:headed
+
+npm run bdd:dashboard         # headless — @Dashboard
+npm run bdd:dashboard:headed
 ```
 
-### Modo UI — Interface Interativa
-Abre o Playwright UI, que permite selecionar, executar e depurar testes visualmente, com timeline e snapshots de cada passo.
+### Parâmetros de execução (`.env`)
+
+Todos os parâmetros de execução ficam no **`.env`** (leia pelo `playwright.config.ts`). O arquivo
+**é versionado** — contém só parâmetros de execução, sem segredos. Um valor definido no
+**shell vence** o `.env`, então dá pra trocar pontualmente sem editar arquivo:
+
 ```bash
-npx playwright test --ui
-# ou
-npm run test:ui
+TEST_ZOOM=0.9 TEST_PROJECT=firefox npm run bdd:login
 ```
 
----
+| Variável | Default | O que controla |
+|---|---|---|
+| `TEST_PROJECT` | `bdd` | Navegador(es) que rodam: `bdd` (Chrome headless), `bdd-headed`, `edge`, `firefox`, `chromium` (specs legados). Vários: `edge,bdd`. Todos: `all`. |
+| `TEST_WORKERS` | *(padrão do Playwright)* | Quantidade de testes em paralelo. `1` = sequencial, `4` = 4 ao mesmo tempo. |
+| `RECORD_VIDEO` | `false` | `true` grava vídeo de cada teste em `test-results/`. |
+| `TEST_ZOOM` | `1` | Zoom da tela: `0.9` = 90% (afastado), `1.25` = 125% (perto). Faixa 0.5–3. Chromium only — Firefox ignora. |
+| `TEST_VIEWPORT` | *(default de cada project)* | Tamanho da janela headless, formato `LARGURAxALTURA` (ex: `1920x1080`). Não afeta os headed (que maximizam). |
+| `TEST_SLOWMO` | `400` | Pausa em ms após cada ação (projetos headed). `0` = sem pausa, execução mais rápida. |
+| `TEST_BASE_URL` | `http://localhost:3000` | URL da aplicação sob teste. |
+| `TEST_ENV` | *(nenhum = só `.env` local)* | Qualquer valor carrega `.env.<TEST_ENV>` por cima do `.env` (sobrescreve só o que esse arquivo definir — ex: `TEST_BASE_URL`). Projeto é só teste/homologação, nunca produção — use `staging`/`homologacao` conforme o ambiente real do FintechBankApp. Mesmo padrão do `getEnv()` do [ortoniKC/Playwright_Cucumber_TS](https://github.com/ortoniKC/Playwright_Cucumber_TS), adaptado às variáveis `TEST_*` daqui. Uso: `TEST_ENV=staging npm run bdd:login`. |
+| `TEST_SCREEN_SIZE` | `1920x1080` | Tamanho da tela considerado no modo lado a lado (abaixo). |
+| `TEST_WINDOW_POSITION` | *(automático)* | Fixa a posição da janela, formato `X,Y` (ex: `0,0`). Desliga o lado a lado automático. |
+| `TEST_WINDOW_SIZE` | *(automático)* | Fixa o tamanho da janela, formato `LARGURAxALTURA` (ex: `960x1080`). Desliga o lado a lado automático. |
 
-### Executar um arquivo específico
+Valores inválidos (ex: `TEST_ZOOM=banana`) derrubam a execução com erro explicativo **antes** de
+abrir qualquer navegador.
+
+### Escolher navegador (`TEST_PROJECT`)
+
+O padrão é `bdd` (Chrome headless) — ou seja, `npm run test:bdd` e `npm run bdd:login` rodam
+**1 navegador só** por padrão (nada de disparar chromium + edge + firefox de uma vez):
+
 ```bash
-npx playwright test tests/e2e/login.spec.ts
+TEST_PROJECT=firefox npm run bdd:login        # Firefox
+TEST_PROJECT=edge,bdd npm run test:bdd        # Edge + Chrome de uma vez
+TEST_PROJECT=chromium npm run test:chromium   # specs legados .spec.ts
+TEST_PROJECT=all npm run bdd:login            # todos os navegadores (comportamento antigo)
 ```
 
-### Executar por nome de teste (grep)
-Filtra e executa apenas os testes cujo título corresponde ao padrão informado.
+Também dá pra fixar no `.env` (`TEST_PROJECT=edge`). O parâmetro `--project=xxx` da CLI do
+Playwright continua funcionando e soma com o `TEST_PROJECT`.
+
+> Dica: para testar com o navegador visível, troque para `bdd-headed` (`TEST_PROJECT=bdd-headed`
+> + `--headed`) ou use os scripts `*:headed` que já fixam isso pra você.
+
+### Vários navegadores lado a lado
+
+**Regra geral da janela:** com **1 navegador visível** a janela ocupa a **tela inteira**
+(maximizada); com **2 ou mais navegadores visíveis**, a tela é dividida — cada um ganha uma
+**fatia horizontal**, um do lado do outro.
+
+Os projetos `bdd-headed` e `edge` abrem **sempre visíveis** (não precisam de `--headed`). Os
+projetos `bdd` e `chromium` abrem visíveis quando a CLI passa `--headed` — nesse caso eles
+também entram na regra (1 sozinho = tela inteira, 2+ = lado a lado):
+
 ```bash
-npx playwright test --grep "CT01"
-npx playwright test --grep "login"
+TEST_PROJECT=bdd-headed,edge npm run bdd:login
+# Ordem direita → esquerda: 1º navegador (bdd-headed) na DIREITA [960,1920],
+# 2º (edge) na ESQUERDA [0,960] — um do lado do outro
 ```
 
-### Executar em um browser específico
-O projeto tem **webkit** ativo por padrão. Para usar outro browser, habilite-o em `playwright.config.ts` primeiro.
+A largura da tela considerada vem de `TEST_SCREEN_SIZE` (default `1920x1080`). Pra controlar a
+janela na mão (ex: 1 navegador por terminal), use `TEST_WINDOW_POSITION=X,Y` e/ou
+`TEST_WINDOW_SIZE=LARGURAxALTURA` — isso desliga o automático. Firefox não participa do lado a
+lado (não aceita os args de janela do Chromium).
+
+### Um cenário específico, com navegador visível
+
 ```bash
-# WebKit — Safari (ativo no projeto)
-npx playwright test --project=webkit
-npm run test:webkit
-
-# Chromium — Chrome/Edge
-npx playwright test --project=chromium
-npm run test:chromium
-
-# Firefox
-npx playwright test --project=firefox
-npm run test:firefox
+npm run test:bdd:headed -- --grep "CT01.1"
+npm run bdd:cadastro:headed         # atalho já pronto pro cenário de cadastro
 ```
 
-### Executar em paralelo / controlar workers
-```bash
-# Máximo de workers em paralelo (padrão: automático)
-npx playwright test --workers=4
+Ou direto (sem passar pelo `npm run`, útil se já rodou `bdd:gen` recentemente):
 
-# Execução serial (1 worker) — útil para debug
-npx playwright test --workers=1
+```bash
+npx playwright test --project=bdd-headed --headed --workers=1 --grep "<tag ou texto>"
 ```
 
----
+### Outros browsers
 
-### Modo Debug — Passo a passo com DevTools
-Pausa a execução no primeiro passo ativando o Playwright Inspector.
+```bash
+npm run test:edge:headed      # Microsoft Edge (canal do sistema, não baixado pelo Playwright)
+npm run test:firefox:headed   # Firefox
+```
+
+### Specs legados (.spec.ts, fora do BDD)
+
+```bash
+npx playwright test --project=chromium tests/e2e/pagamentoFatura.spec.ts
+```
+
+### Modo Debug / Codegen / Trace
+
 ```bash
 npx playwright test --debug
-
-# Debug de um arquivo específico
-npx playwright test tests/e2e/login.spec.ts --debug
-```
-
-### Modo Codegen — Gravação de testes
-Abre o navegador e grava as interações do usuário, gerando código TypeScript automaticamente.
-```bash
-# Grava a partir da URL base do projeto (http://localhost:3000)
 npx playwright codegen http://localhost:3000
-
-# Grava e salva o código gerado em um arquivo
-npx playwright codegen http://localhost:3000 --output tests/e2e/novo-teste.spec.ts
-
-# Grava simulando um dispositivo móvel
-npx playwright codegen --device="iPhone 15" http://localhost:3000
-```
-
----
-
-### Trace Viewer — Inspecionar execuções gravadas
-O trace é coletado automaticamente na primeira re-tentativa de testes falhos (`trace: 'on-first-retry'`). Para abrir manualmente:
-```bash
-# Abre o trace de um arquivo .zip gerado em test-results/
 npx playwright show-trace test-results/<pasta-do-teste>/trace.zip
-
-# Forçar coleta de trace em todos os testes
-npx playwright test --trace=on
-```
-
-### Relatório HTML
-Exibe o relatório da última execução no navegador.
-```bash
 npx playwright show-report
-# ou
-npm run test:report
 ```
 
 ---
 
-### Variáveis de ambiente úteis
-```bash
-# Simular ambiente de CI (retries=2, workers=1, forbidOnly)
-CI=true npx playwright test
+## Status atual dos cenários
 
-# Desabilitar paralelismo manualmente
-npx playwright test --workers=1
-```
+| Feature | Status | Observação |
+|---|---|---|
+| `login.feature` | ✅ 6/6 passando | CT01.1–CT01.6 |
+| `cadastro.feature` | ✅ 1/1 passando | Fluxo completo: cadastro → modal → login → dashboard → perfil → logout |
+| `dashboard.feature` | 🚧 Em revisão | Steps criados, mas as 3 telas originais (`CT02.1` Meta de Gastos, `CT02.2` Diagnóstico IA, `CT02.3` Conta Recorrente) mudaram ou foram removidas do app atual — precisa de codegen na tela nova antes de reescrever os cenários. |
+| `pagamentoFatura.spec.ts` | 📋 Não convertido | Ainda `.spec.ts` legado — próximo candidato a virar `.feature`. |
 
 ---
 
-## Estrutura do Projeto
+## Projects do Playwright (`playwright.config.ts`)
 
-```
-poc-fintech-playwright/
-├── tests/               # Arquivos de teste
-├── tests-examples/      # Exemplos gerados pelo Playwright
-├── playwright.config.ts # Configuração do Playwright
-├── package.json         # Dependências e scripts
-└── README.md            # Documentação
-```
+| Project | Uso |
+|---|---|
+| `chromium` | Specs `.spec.ts` legados |
+| `bdd` | Cenários `.feature`, headless (CI). Com `--headed`: janela única = tela inteira; 2+ visíveis = fatia do lado a lado |
+| `bdd-headed` | Cenários `.feature`, Chrome maximizado + zoom travado em 100% + `slowMo`, pra assistir a execução |
+| `edge` | Mesma config do `bdd-headed`, no Microsoft Edge |
+| `firefox` | Cenários `.feature` no Firefox (viewport fixo, sem os launch args de Chromium) |
+
+> `TEST_PROJECT` (ou `--project` da CLI) seleciona quais desses projects rodam — ver
+> ["Escolher navegador (`TEST_PROJECT`)"](#escolher-navegador-test_project).
+
+---
 
 ## Contribuição
 
 1. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
-2. Commit suas mudanças (`git commit -m 'feat: adiciona novos testes de login'`)
+2. Commit suas mudanças (`git commit -m 'feat: adiciona novo cenário de X'`)
 3. Faça o push para a branch (`git push origin feature/nova-feature`)
 4. Abra um Merge Request
 

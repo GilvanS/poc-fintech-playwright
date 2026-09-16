@@ -19,4 +19,18 @@ export const logger = winston.createLogger({
     ],
 });
 
+/**
+ * Formata uma duração em ms sempre com a unidade de minutos (nunca só segundos "soltos"),
+ * igual ao "Time execution of test.........: 0 Hour(s) 3 minute(s) 5 second(s)" do
+ * Hooks.java dos projetos mobile (Digio/Uber) — mais curto (sem palavras por extenso),
+ * mas com o mesmo princípio: minuto sempre aparece, hora só quando relevante.
+ */
+export function formatarDuracao(ms: number): string {
+    const totalSegundos = ms / 1000;
+    const horas = Math.floor(totalSegundos / 3600);
+    const minutos = Math.floor((totalSegundos % 3600) / 60);
+    const segundos = (totalSegundos % 60).toFixed(1);
+    return horas > 0 ? `${horas}h ${minutos}min ${segundos}s` : `${minutos}min ${segundos}s`;
+}
+
 export default logger;

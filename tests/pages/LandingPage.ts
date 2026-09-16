@@ -1,77 +1,67 @@
-import { expect, Page, Locator } from "@playwright/test";
+import { expect, Page } from "@playwright/test";
+import { LoginLocators } from "../locators/LoginLocators";
 
 export class LandingPage {
     readonly page: Page;
-
-    // Propriedades da página (Locators centralizados)
-    private readonly heading: Locator;
-    private readonly subTitle: Locator;
-    private readonly signUpButton: Locator;
-    private readonly loginButton: Locator;
-    private readonly loginBrand: Locator;
-    private readonly loginTitle: Locator;
-    private readonly signupPrompt: Locator;
-    readonly cpfInput: Locator;
-    private readonly passwordInput: Locator;
-    private readonly submitLoginButton: Locator;
-    private readonly alertMessage: Locator;
+    readonly locators: LoginLocators;
 
     constructor(page: Page) {
         this.page = page;
-
-        // Inicialização dos locators
-        this.heading = page.getByRole('heading', { name: 'VOLT' });
-        this.subTitle = page.getByText('O banco digital que acelera');
-        this.signUpButton = page.getByRole('button', { name: 'CRIAR CONTA' });
-        this.loginButton = page.getByRole('button', { name: 'ENTRAR' });
-        this.loginBrand = page.getByTestId('login-brand');
-        this.loginTitle = page.getByTestId('login-title');
-        this.signupPrompt = page.getByText('Não tem uma conta? Cadastre-se');
-        this.cpfInput = page.getByTestId('login-input-cpf');
-        this.passwordInput = page.getByTestId('login-input-password');
-        this.submitLoginButton = page.getByTestId('login-submit-button');
-        this.alertMessage = page.locator('.alert');
+        this.locators = new LoginLocators(page);
     }
 
     async visit(): Promise<void> {
         await this.page.goto('/');
-        await expect(this.heading).toBeVisible();
-        await expect(this.subTitle).toBeVisible();
+        await expect(this.locators.heading).toBeVisible();
+        await expect(this.locators.subTitle).toBeVisible();
     }
 
     async goToSignUp(): Promise<void> {
-        await this.signUpButton.click();
+        await this.locators.signUpButton.click();
     }
 
     async openLoginModal(): Promise<void> {
-        await this.loginButton.click();
-        await expect(this.loginBrand).toBeVisible();
-        await expect(this.loginTitle).toBeVisible();
-    }
-
-    async validateSignupPrompt(): Promise<void> {
-        await expect(this.signupPrompt).toBeVisible();
+        await this.locators.loginButton.click();
+        await expect(this.locators.loginBrand).toBeVisible();
+        await expect(this.locators.loginTitle).toBeVisible();
     }
 
     async fillLoginForm(cpf: string, password: string): Promise<void> {
         if (cpf) {
-            await this.cpfInput.fill(cpf);
+            await this.locators.cpfInput.fill(cpf);
         }
         if (password) {
-            await this.passwordInput.fill(password);
+            await this.locators.passwordInput.fill(password);
         }
+    }
+
+    /** Preenche só o campo CPF — usado pelos steps atômicos de validação de campo obrigatório. */
+    async preencherCpf(cpf: string): Promise<void> {
+        await this.locators.cpfInput.fill(cpf);
+    }
+
+    /** Preenche só o campo Senha — usado pelos steps atômicos de validação de campo obrigatório. */
+    async preencherSenha(password: string): Promise<void> {
+        await this.locators.passwordInput.fill(password);
     }
 
     async clickSubmitLoginButton(): Promise<void> {
-        await this.submitLoginButton.click();
+        await this.locators.submitLoginButton.click();
     }
 
+    /** Alias em português do clique de submit — mesmo botão, nome alinhado ao texto do Gherkin. */
+    async clicarEntrar(): Promise<void> {
+        await this.locators.submitLoginButton.click();
+    }
+
+    // Mantido pelos specs legados (tests/e2e/) — os steps de login.feature usam os métodos
+    // atômicos (preencherCpf/preencherSenha/clicarEntrar) acima, um por linha de Gherkin.
     async submitLoginForm(cpf: string, password: string): Promise<void> {
         await this.fillLoginForm(cpf, password);
         await this.clickSubmitLoginButton();
     }
 
     async alertHaveText(target: RegExp[]): Promise<void> {
-        await expect(this.alertMessage).toHaveText(target);
+        await expect(this.locators.alertMessage).toHaveText(target);
     }
 }
