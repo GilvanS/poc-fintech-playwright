@@ -157,10 +157,16 @@ vite.config.ts.timestamp-*
 
 # Ruflo, Claude, Swarm
 ruvector.db*
-.claude/
 .claude-flow/
 .swarm/
 .mcp.json
+
+# .claude/ versionado de propósito (settings.json, skills/, agents/, commands/,
+# helpers/) para sobreviver a troca de máquina/clone — só o que é pessoal/local
+# fica de fora (settings.local.json tinha token de auth, já removido de
+# settings.json e movido pra variável de ambiente do Windows, 2026-09-21).
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 # Artefatos de runtime locais (allure-results do SummaryReporter)
 /output/
