@@ -218,8 +218,15 @@ export default defineConfig({
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Default (30s) é curto demais pro fluxo completo de cadastro (form + submit + modal +
-     login + validações de dashboard + navegação de perfil), especialmente em --headed. */
-  timeout: 60_000,
+     login + validações de dashboard + navegação de perfil), especialmente em --headed.
+     60s tambem ficou curto pro CT03 (fatura): so ate digitar o PIN ja passam ~40-50s
+     (login + dashboard + navegar + capturar valores + iniciar pagamento), e o proprio
+     modal de PIN pode esperar ate 60s pela resposta (PinModalComponent.ts, subiu de
+     30s->60s em 2026-09-21 junto com o fix do crash da API) - o timeout GLOBAL do
+     cenario batia ANTES do wait interno do PIN terminar, matando o browser no meio
+     ("Target page, context or browser has been closed") em vez de deixar o erro
+     customizado do PIN aparecer. 150s da folga real pros dois. */
+  timeout: 150_000,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
