@@ -9,18 +9,20 @@ import { logger } from './logger';
  *      └─ CPF (remetente), SENHA e coluna "Valor PIX"
  *  TBL_USUARIOS_SECUNDARIOS (linha ID_CENARIO = CTxx.x)
  *      └─ CPF/ID_MASSA de quem RECEBE o Pix
- *  TBL_MASSA_CADASTRADA / TBL_CADASTRO (join por CPF)
- *      └─ NOME_COMPLETO do destinatário (validado na tela de revisão)
+ *  TBL_USUARIOS (join por CPF — mesma aba usada pro remetente)
+ *      └─ Nome Completo do destinatário (validado na tela de revisão)
  *
+ * Destinatário e remetente vêm da MESMA aba (TBL_USUARIOS) de propósito: é a massa
+ * de usuários que existem de verdade no banco, então o CPF colocado em
+ * TBL_USUARIOS_SECUNDARIOS tem que ser de uma linha já presente em TBL_USUARIOS —
+ * TBL_CADASTRO é de outro domínio (fluxo de cadastro) e não deve ser usada aqui.
  * Quem decide qual massa cada cenário usa é quem edita a planilha, não o código —
- * a correlação é pelo ID_CENARIO, igual ao padrão de TBL_CADASTRO/TBL_CENARIOS.
+ * a correlação é pelo ID_CENARIO.
  */
 const ARQUIVO = path.resolve(process.cwd(), 'data', 'MassaDados.xlsx');
 const ABA_CENARIOS = 'TBL_CENARIOS';
 const ABA_SECUNDARIOS = 'TBL_USUARIOS_SECUNDARIOS';
 const ABA_USUARIOS = 'TBL_USUARIOS';
-const ABA_MASSA_CADASTRADA = 'TBL_MASSA_CADASTRADA';
-const ABA_CADASTRO = 'TBL_CADASTRO';
 
 export type PixMassa = {
     /** ID do cenário (ex: 'CT02.1') — chave da correlação entre as TBLs. */
@@ -105,18 +107,20 @@ export function obterMassaPixDoCenario(idCenario: string): PixMassa {
         throw new Error(msg);
     }
 
-    // 3) Nome do destinatário — join por CPF em TBL_MASSA_CADASTRADA ou TBL_CADASTRO
-    const pool = workbook.Sheets[ABA_MASSA_CADASTRADA]
-        ? XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[ABA_MASSA_CADASTRADA])
-        : [];
-    const candidatos = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[ABA_CADASTRO] ?? {});
-    const nome = [...pool, ...candidatos]
+    // 3) Nome do destinatário — join por CPF em TBL_USUARIOS, a MESMA aba usada no
+    // passo 4 abaixo pra validar o remetente. TBL_USUARIOS é a massa de usuários
+    // reais no banco (login funciona pra qualquer linha dela); TBL_CADASTRO é de
+    // outro domínio (fluxo de cadastro) e não deveria ser fonte de destinatário de
+    // Pix — o teste do app consulta a chave Pix no backend de verdade e mostra o
+    // nome do titular (PixPage.ts:210), então o CPF aqui tem que ser de alguém que
+    // exista no banco com aquele nome, o que TBL_USUARIOS já garante.
+    const nome = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[ABA_USUARIOS] ?? {})
         .map(normalizarChave)
         .filter((r) => normalizarCpf(r['CPF']) === cpfDestinatario)
-        .map((r) => String(r['NOME_COMPLETO'] ?? '').trim())
+        .map((r) => String(r['NOME COMPLETO'] ?? '').trim())
         .find((n) => n !== '');
     if (!nome) {
-        const msg = `Nome do destinatário não encontrado: CPF '${cpfDestinatario}' da linha '${id}' de '${ABA_SECUNDARIOS}' não existe em '${ABA_MASSA_CADASTRADA}' nem em '${ABA_CADASTRO}'. Cadastre o usuário secundário na planilha.`;
+        const msg = `Nome do destinatário não encontrado: CPF '${cpfDestinatario}' da linha '${id}' de '${ABA_SECUNDARIOS}' não existe em '${ABA_USUARIOS}'. Troque o CPF/ID_MASSA da linha do destinatário para um usuário já cadastrado em '${ABA_USUARIOS}'.`;
         logger.error(`❌ ${msg}`);
         throw new Error(msg);
     }
