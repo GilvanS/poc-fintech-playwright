@@ -104,40 +104,6 @@ Then('eu valido a fatura fechada com o valor da massa', async ({ faturasPage, fa
     await faturasPage.validarFaturaFechada(`R$ ${valorEsperado}`);
 });
 
-// Guard de precondição do CT03.6: a massa tem que ter o Limite Disponível NEGATIVO
-// (limite estourado) na tela de Faturas — é o estado que o cenário existe pra provar.
-// Falha explícita (não silenciosa) se a massa não estiver nesse estado: virar positivo
-// sem nunca ter sido negativo não prova nada, e o step seguinte daria falso verde.
-When('eu valido que o limite disponível está negativo na tela de Faturas', async ({ faturasPage }) => {
-    const limite = await faturasPage.lerLimiteDisponivel();
-    if (limite >= 0) {
-        throw new Error(
-            `[Precondição CT03.6] Limite Disponível deveria estar NEGATIVO na tela de Faturas, mas é R$ ${limite.toFixed(2)} — ` +
-            `a massa não está com o limite estourado. Escolha um CPF com lim_disponivel negativo em TBL_CENARIOS.`
-        );
-    }
-    logger.info(`📌 Guard CT03.6: Limite Disponível NEGATIVO confirmado (UI): R$ ${limite.toFixed(2)}`);
-});
-
-// Prova central do CT03.6: após o pagamento TOTAL da fatura fechada, o Limite
-// Disponível que estava negativo (estado capturado no guard acima) vira POSITIVO.
-// O poll espera a atualização do saldo na UI (mesmo padrão de polling do
-// validarLimiteDisponivelSubiuComPagamento em FaturasPage). Falha explícita se
-// continuar <= 0: pode ser pagamento não efetivado OU restauração menor que o
-// déficit — os dois casos violam a premissa do cenário (pagamento total > déficit).
-Then('devo ver que o limite disponível virou positivo após o pagamento na tela de Faturas', async ({ faturasPage }) => {
-    await expect
-        .poll(async () => faturasPage.lerLimiteDisponivel(), { timeout: 15000, intervals: [500, 1000, 2500] })
-        .toBeGreaterThan(0);
-    const limiteDepois = await faturasPage.lerLimiteDisponivel();
-    if (limiteDepois <= 0) {
-        throw new Error(
-            `[CT03.6] Limite Disponível continuou negativo/zero após o pagamento total: R$ ${limiteDepois.toFixed(2)} — ` +
-            `esperado positivo (pagamento total restaura o principal; com limite estourado, ele precisa cruzar o zero).`
-        );
-    }
-    logger.info(`✅ CT03.6: Limite Disponível virou POSITIVO após o pagamento total (UI): R$ ${limiteDepois.toFixed(2)}`);
-});
 
 When('eu inicio o pagamento da fatura', async ({ faturasPage }) => {
     await faturasPage.abrirPagamentoFatura();

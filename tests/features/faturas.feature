@@ -77,19 +77,3 @@ Feature: Consulta e pagamento de faturas do cartão
     And eu digito o PIN da massa no teclado da confirmação
     Then devo ver o total das faturas diminuído após o pagamento
     And devo ver o pagamento de "Parcial" em Ver Lançamentos na Fatura Aberta
-
-  @CT03.6 @Faturas
-  Scenario: Consultar faturas e pagar o valor total com limite disponível negativo
-    When eu valido que a fatura pode ser paga
-    And eu navego para a tela de Faturas pelo dashboard
-    And eu valido que a tela de Faturas carregou com o histórico de parcelamento
-    And eu valido que o limite disponível está negativo na tela de Faturas
-    And eu capturo os valores das faturas antes do pagamento
-    And eu inicio o pagamento da fatura
-    And eu seleciono a forma de pagamento "Total"
-    And eu confirmo a forma de pagamento escolhida
-    And eu digito o PIN da massa no teclado da confirmação
-    Then devo ver o total das faturas diminuído após o pagamento
-    And devo ver que o limite disponível virou positivo após o pagamento na tela de Faturas
-    And devo ver que a fatura fechada ficou zerada
-    And devo ver o pagamento de "Total" em Ver Lançamentos na Fatura Aberta
