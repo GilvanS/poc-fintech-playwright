@@ -1,7 +1,7 @@
 import { createBdd } from 'playwright-bdd';
-import { readExcelSheet } from '../utils/excelReader';
-import { test } from '../../fixtures/testFixture';
+import { test, expect } from '../../fixtures/testFixture';
 import { PinModalComponent } from '../pages/components/PinModalComponent';
+import { calcularMinimoFatura, truncar4 } from '../utils/moeda';
 import { logger } from '../utils/logger';
 
 const { When, Then } = createBdd(test);
@@ -82,8 +82,9 @@ When('eu capturo os valores das faturas antes do pagamento', async ({ faturasPag
     const totais = await faturasPage.lerTotaisFaturas();
     faturasApiState.totalAntes = totais.fechada;
     faturasApiState.faturaFechadaReal = totais.fechada;
+    faturasApiState.aberturaAntes = totais.aberta;
     faturasApiState.limiteDisponivelAntes = await faturasPage.lerLimiteDisponivel();
-    logger.info(`📌 Fatura fechada ANTES (UI): R$ ${totais.fechada.toFixed(2)} | Fatura aberta (contexto, não entra no cálculo): R$ ${totais.aberta.toFixed(2)}`);
+    logger.info(`📌 Fatura fechada ANTES (UI): R$ ${totais.fechada.toFixed(2)} | Fatura aberta ANTES (UI): R$ ${totais.aberta.toFixed(2)}`);
     logger.info(`📌 Limite Disponível ANTES (UI): R$ ${faturasApiState.limiteDisponivelAntes.toFixed(2)}`);
 });
 
@@ -101,6 +102,41 @@ Then('eu valido a fatura fechada com o valor da massa', async ({ faturasPage, fa
     const valorEsperado = formatarValorFatura(faturasApiState.faturaFechadaReal);
     logger.info(`🧾 Fatura fechada REAL (API): R$ ${valorEsperado}`);
     await faturasPage.validarFaturaFechada(`R$ ${valorEsperado}`);
+});
+
+// Guard de precondição do CT03.6: a massa tem que ter o Limite Disponível NEGATIVO
+// (limite estourado) na tela de Faturas — é o estado que o cenário existe pra provar.
+// Falha explícita (não silenciosa) se a massa não estiver nesse estado: virar positivo
+// sem nunca ter sido negativo não prova nada, e o step seguinte daria falso verde.
+When('eu valido que o limite disponível está negativo na tela de Faturas', async ({ faturasPage }) => {
+    const limite = await faturasPage.lerLimiteDisponivel();
+    if (limite >= 0) {
+        throw new Error(
+            `[Precondição CT03.6] Limite Disponível deveria estar NEGATIVO na tela de Faturas, mas é R$ ${limite.toFixed(2)} — ` +
+            `a massa não está com o limite estourado. Escolha um CPF com lim_disponivel negativo em TBL_CENARIOS.`
+        );
+    }
+    logger.info(`📌 Guard CT03.6: Limite Disponível NEGATIVO confirmado (UI): R$ ${limite.toFixed(2)}`);
+});
+
+// Prova central do CT03.6: após o pagamento TOTAL da fatura fechada, o Limite
+// Disponível que estava negativo (estado capturado no guard acima) vira POSITIVO.
+// O poll espera a atualização do saldo na UI (mesmo padrão de polling do
+// validarLimiteDisponivelSubiuComPagamento em FaturasPage). Falha explícita se
+// continuar <= 0: pode ser pagamento não efetivado OU restauração menor que o
+// déficit — os dois casos violam a premissa do cenário (pagamento total > déficit).
+Then('devo ver que o limite disponível virou positivo após o pagamento na tela de Faturas', async ({ faturasPage }) => {
+    await expect
+        .poll(async () => faturasPage.lerLimiteDisponivel(), { timeout: 15000, intervals: [500, 1000, 2500] })
+        .toBeGreaterThan(0);
+    const limiteDepois = await faturasPage.lerLimiteDisponivel();
+    if (limiteDepois <= 0) {
+        throw new Error(
+            `[CT03.6] Limite Disponível continuou negativo/zero após o pagamento total: R$ ${limiteDepois.toFixed(2)} — ` +
+            `esperado positivo (pagamento total restaura o principal; com limite estourado, ele precisa cruzar o zero).`
+        );
+    }
+    logger.info(`✅ CT03.6: Limite Disponível virou POSITIVO após o pagamento total (UI): R$ ${limiteDepois.toFixed(2)}`);
 });
 
 When('eu inicio o pagamento da fatura', async ({ faturasPage }) => {
@@ -160,11 +196,23 @@ When('eu digito o PIN da massa no teclado da confirmação', async ({ page, fatu
     // falha em segundos com causa explícita em vez de travar no PIN.
     if (faturasApiState.faturaFechadaReal !== null) {
         const valorNoModal = await faturasPage.lerValorModalPin();
+        if (valorNoModal === null) {
+            // Doutrina anti-fallback-silencioso (CLAUDE.md): sem o valor do modal o guard
+            // de alvo fica INOPERANTE — avisar, não passar em silêncio (um pagamento
+            // aberto pra fatura/valor errado só seria descoberto lá na frente, nas
+            // validações pós-PIN).
+            logger.warn('⚠️ [PIN] Valor do pagamento ("...confirmar o pagamento de R$ X.") não ficou visível no modal de PIN em 3s — guard de alvo pulado. Se o alvo estiver errado, a falha só aparecerá nas validações pós-PIN.');
+        }
         let esperado: number | null = null;
         if (faturasApiState.formaPagamento === 'total') {
             esperado = faturasApiState.faturaFechadaReal;
         } else if (faturasApiState.formaPagamento === 'minimo') {
-            esperado = faturasApiState.faturaFechadaReal * 0.1;
+            // 10% com a regra da fintech: TRUNCADO em 4 casas, nunca arredondado.
+            // A UI RENDERIZA o preset com 2 casas (toLocaleString arredonda o que
+            // exibe — ex: 423,505 truncado → "R$ 423,50"), então a comparação aqui
+            // continua com tolerância de exibição (R$ 0,011). O valor EFETIVADO
+            // (crédito no Limite) é o truncado — validado no step pós-pagamento.
+            esperado = calcularMinimoFatura(faturasApiState.faturaFechadaReal);
         } else if (faturasApiState.valorCustomizado !== null) {
             esperado = faturasApiState.valorCustomizado;
         }
@@ -201,13 +249,30 @@ Then('devo ver o total das faturas diminuído após o pagamento', async ({ fatur
         throw new Error('Total antes do pagamento não foi capturado — rode o step "eu capturo os valores das faturas antes do pagamento" antes.');
     }
     if (faturasApiState.formaPagamento === 'total') {
-        // Fecha o modal de sucesso pós-PIN (cobre os cards), relê a fatura fechada na UI e
-        // falha se o valor não caiu — comparação real contra o valor capturado antes.
-        const fechadaDepois = await faturasPage.validarFaturaFechadaMenor(faturasApiState.totalAntes);
-        logger.info(`🔎 Cruzamento: fatura fechada antes R$ ${faturasApiState.totalAntes.toFixed(2)} → depois (UI) R$ ${fechadaDepois.toFixed(2)}`);
+        if (faturasApiState.limiteDisponivelAntes === null) {
+            throw new Error('Limite Disponível antes do pagamento não foi capturado — rode o step "eu capturo os valores das faturas antes do pagamento" antes.');
+        }
+        if (faturasApiState.aberturaAntes === null) {
+            throw new Error('Fatura aberta antes do pagamento não foi capturada — rode o step "eu capturo os valores das faturas antes do pagamento" antes.');
+        }
+        // Fecha o modal de sucesso pós-PIN (cobre os cards) e cruza os 3 pontos reais da
+        // UI: fatura fechada mantém o valor original (imutável, badge Paga), Limite
+        // Disponível sobe exatamente o valor pago, Fatura Aberta não muda.
+        const { fechadaDepois, limiteDepois, abertaDepois } = await faturasPage.validarPagamentoTotalEfetivado(
+            faturasApiState.totalAntes,
+            faturasApiState.limiteDisponivelAntes,
+            faturasApiState.aberturaAntes
+        );
+        logger.info(
+            `🔎 Cruzamento (total): fatura fechada mantém valor original R$ ${fechadaDepois.toFixed(2)} (imutável, badge Paga) | ` +
+            `Limite Disponível antes R$ ${faturasApiState.limiteDisponivelAntes.toFixed(2)} → depois R$ ${limiteDepois.toFixed(2)} (+R$ ${faturasApiState.totalAntes.toFixed(2)}) | ` +
+            `Fatura Aberta antes R$ ${faturasApiState.aberturaAntes.toFixed(2)} - pago R$ ${faturasApiState.totalAntes.toFixed(2)} → depois R$ ${abertaDepois.toFixed(2)} (consolidado sem a dívida quitada)`
+        );
     } else {
         // Pagamento parcial: prova pela elevação EXATA do Limite Disponível.
-        const valorPago = faturasApiState.valorPagoEfetivo ?? faturasApiState.valorCustomizado ?? (faturasApiState.faturaFechadaReal ?? 0) * 0.1;
+        // Fallback do mínimo: 10% com regra da fintech (TRUNCADO em 4 casas — o
+        // crédito no limite é o truncado, ex: 10% de 4.235,05 = 423,50, não 423,51).
+        const valorPago = faturasApiState.valorPagoEfetivo ?? faturasApiState.valorCustomizado ?? calcularMinimoFatura(faturasApiState.faturaFechadaReal ?? 0);
         if (faturasApiState.limiteDisponivelAntes === null) {
             throw new Error('Limite Disponível antes do pagamento não foi capturado — rode o step "eu capturo os valores das faturas antes do pagamento" antes.');
         }
@@ -252,22 +317,32 @@ When('eu preencho o valor personalizado com o valor {string} da massa', async ({
     if (!testData) {
         throw new Error('Massa de cenário ausente');
     }
-    const idCenario = testData.ID_CENARIO;
-    const tblFatura = readExcelSheet<any>('TBL_FATURA');
-    const linha = tblFatura.find((row) => row.ID_CENARIO === idCenario);
-    if (!linha) {
-        throw new Error(`Linha com ID_CENARIO='${idCenario}' não encontrada na aba TBL_FATURA.`);
+    // As colunas fat_* (fat_min, fat_parcial, fat_menor_min, fat_maior_min) vivem na
+    // PRÓPRIA linha de TBL_CENARIOS — testData (fixture) já é essa linha. A aba
+    // TBL_FATURA existe na planilha mas só tem ID_CENARIO/ID_MASSA/CPF (mais 2 linhas
+    // órfãs sem ID_CENARIO): ler dela falhava SEMPRE para CT03.3–03.5 com "Coluna
+    // 'fat_parcial' não encontrada ou vazia". Falha explícita (não silenciosa) se a
+    // coluna sumir da linha de TBL_CENARIOS.
+    const bruto = String(testData[coluna] ?? '').trim();
+    if (!bruto || bruto === 'undefined') {
+        throw new Error(`Coluna '${coluna}' não encontrada ou vazia na linha ${testData.ID_CENARIO} de TBL_CENARIOS (MassaDados.xlsx).`);
     }
-    
-    // As colunas podem ser 'fat_parcial', 'fat_min', etc.
-    const valor = String(linha[coluna]);
-    if (!valor || valor === 'undefined') {
-        throw new Error(`Coluna '${coluna}' não encontrada ou vazia para o cenário '${idCenario}' na aba TBL_FATURA.`);
+
+    // Moeda tem só 2 casas decimais — o xlsx às vezes devolve o número com ruído de
+    // ponto flutuante (ex: 457.17100000000005 em vez de 457.17, típico de fórmula
+    // do Excel). TRUNCA em 4 casas (regra de cálculo da fintech — nunca arredonda)
+    // ANTES de digitar: mata o ruído de float sem inventar centavos que a massa
+    // não tem (o Math.round antigo podia ARREDONDAR pra cima um valor da massa).
+    const valorNum = truncar4(Number(bruto.replace(',', '.')));
+    if (Number.isNaN(valorNum)) {
+        throw new Error(`Coluna '${coluna}' tem valor não-numérico ("${bruto}") na linha ${testData.ID_CENARIO} de TBL_CENARIOS.`);
     }
-    
+    const valor = valorNum.toFixed(2);
+
     await faturasPage.preencherValorCustomizado(valor);
     // Valor customizado (Parcial/Menor/Maior) substitui o alvo do guard do PIN.
-    faturasApiState.valorCustomizado = Number(valor.replace(',', '.'));
+    faturasApiState.valorCustomizado = valorNum;
+    logger.info(`💳 Valor personalizado (${coluna}) do pagamento: ${valor}`);
 });
 
 Then('devo ver o pagamento de {string} em Ver Lançamentos na Fatura Aberta', async ({ faturasPage, faturasApiState }, tipoPgto: string) => {
@@ -279,12 +354,13 @@ Then('devo ver o pagamento de {string} em Ver Lançamentos na Fatura Aberta', as
     const tipoGherkin = tipoSemAcento.includes('total') ? 'total' : tipoSemAcento.includes('min') ? 'minimo' : 'parcial';
 
     // Regra REAL do rótulo (API do app, invoiceController:739): o tipo gravado depende
-    // do VALOR pago, não da intenção do usuário — personalizado >= mínimo (10% da
-    // fatura) é gravado como MINIMO; só < mínimo é PARCIAL. Prova ao vivo 22:43:
-    // pagamento personalizado de R$ 500 saiu como "Pagamento fatura (Mínimo)".
+    // do VALOR pago, não da intenção do usuário — personalizado >= mínimo é gravado
+    // como MINIMO; só < mínimo é PARCIAL. O patamar do mínimo é o TRUNCADO em 4 casas
+    // (regra de cálculo da fintech) — comparar contra o arredondado pode inverter o
+    // rótulo quando o valor personalizado cai exatamente entre 10% e 10%+0,005.
     let tipoEsperado = tipoGherkin;
     if (tipoGherkin === 'parcial' && faturasApiState.valorPagoEfetivo !== null && faturasApiState.faturaFechadaReal !== null) {
-        tipoEsperado = faturasApiState.valorPagoEfetivo >= faturasApiState.faturaFechadaReal * 0.1 ? 'minimo' : 'parcial';
+        tipoEsperado = faturasApiState.valorPagoEfetivo >= calcularMinimoFatura(faturasApiState.faturaFechadaReal) ? 'minimo' : 'parcial';
     }
     logger.info(`🔎 Lançamento esperado: Gherkin "${tipoPgto}" → rótulo real do app: "${tipoEsperado}"`);
 

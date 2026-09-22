@@ -2,6 +2,9 @@ import { expect, Locator, Page } from "@playwright/test";
 import { FaturasLocators } from "../locators/FaturasLocators";
 import { NavbarComponent } from "./components/NavbarComponent";
 import { PopupsComponent } from "./components/PopupsComponent";
+import { EvidenceHelper } from "../utils/EvidenceHelper";
+import { truncar4 } from "../utils/moeda";
+import { logger } from "../utils/logger";
 
 /** Valores numéricos lidos dos cards de fatura (Aberta/Fechada) da tela de Faturas. */
 export interface TotaisFaturas {
@@ -52,14 +55,23 @@ export class FaturasPage {
 
     // ---------- Leitura de valores ----------
 
-    /** Converte um valor monetário pt-BR ("R$ 3.870,86") pra número (3870.86). */
+    /**
+     * Converte um valor monetário pt-BR ("R$ 3.870,86" ou "-R$ 50,00") pra número
+     * (3870.86 / -50.00). O app renderiza negativo (limite estourado) com
+     * `toLocaleString('pt-BR', {style:'currency'})`, que produz o hífen ANTES do
+     * "R$" — a regex de limpeza abaixo descarta tudo que não é dígito/vírgula,
+     * então o sinal precisa ser detectado ANTES da limpeza, senão "-R$ 50,00" virava
+     * 50.00 positivo (sinal perdido, achado em 2026-09-21 ao investigar massa com
+     * lim_disponivel negativo quebrando a matemática antes/depois do teste).
+     */
     private parseValorBRL(texto: string): number {
+        const negativo = texto.trim().startsWith('-');
         const limpo = texto.replace(/[^\d,]/g, '');
         const num = Number(limpo.replace(/\./g, '').replace(',', '.'));
         if (Number.isNaN(num)) {
             throw new Error(`Valor "${texto}" não pôde ser interpretado como monetário pt-BR.`);
         }
-        return num;
+        return negativo ? -num : num;
     }
 
     /**
@@ -84,20 +96,17 @@ export class FaturasPage {
     /**
      * Lê o valor da FATURA FECHADA, que só existe na tab "Fatura Fechada" — a tela de
      * Faturas abre na tab "Fatura Aberta" (preso 180s em 2026-09-15 lendo o card fora
-     * da tab certa). Fallback: fatura já quitada mostra badge "Paga" sem card de valor
-     * → devolve 0. Sempre VOLTA pra tab "Fatura Aberta", onde ficam os botões de
-     * pagamento usados pelos steps seguintes.
+     * da tab certa). A fatura fechada é IMUTÁVEL (docs/REGRAS-NEGOCIO-FATURA.md): o
+     * card "Valor Total da Fatura Fechada" continua renderizado e mostra o valor
+     * ORIGINAL mesmo depois de paga (badge "Paga" ao lado) — nunca fica 0,00 nem
+     * some do DOM. Por isso SEMPRE lê o card real, paga ou não — nada de fallback
+     * hardcoded pra 0 (isso mascarava regressão: 2026-09-20, log mostrou "depois R$
+     * 0.00" que na verdade era só o retorno hardcoded daqui, não o valor real da UI).
+     * Sempre VOLTA pra tab "Fatura Aberta", onde ficam os botões de pagamento usados
+     * pelos steps seguintes.
      */
     private async lerValorFaturaFechada(): Promise<number> {
         await this.alternarTabFatura('Fechada');
-        const quitada = await this.locators.faturaFechadaPagaBadge
-            .first()
-            .isVisible({ timeout: 2000 })
-            .catch(() => false);
-        if (quitada) {
-            await this.alternarTabFatura('Aberta');
-            return 0;
-        }
         const valor = await this.lerValorCard(this.locators.valorTotalFaturaFechadaText);
         await this.alternarTabFatura('Aberta');
         return valor;
@@ -120,24 +129,64 @@ export class FaturasPage {
     }
 
     /**
-     * Valida que a FATURA FECHADA (a que se paga no CT03.1) caiu após o pagamento.
-     * `valorAntes` é o valor real capturado da UI no step "eu capturo os valores das
-     * faturas antes do pagamento" — não o valor de controle da planilha. Retorna o
-     * valor depois.
+     * Valida pagamento TOTAL (fatura fechada quitada de uma vez, CT03.1). Regra de
+     * negócio (docs/REGRAS-NEGOCIO-FATURA.md): a fatura fechada é IMUTÁVEL — o valor
+     * exibido NÃO zera nem "diminui", continua sendo o valor ORIGINAL, só ganha o
+     * badge "Paga". A prova real da baixa é matemática, cruzada contra dois outros
+     * pontos da tela (mesmo princípio de validarPagamentoParcialEfetivado, generalizado):
+     *   1. Fatura fechada exibida == valor original capturado antes (imutabilidade).
+     *   2. Limite Disponível sobe — só o PRINCIPAL restaura, não o valor pago inteiro
+     *      quando há encargos embutidos (ver validarLimiteDisponivelSubiuComPagamento,
+     *      corrigido em 2026-09-21 — a versão anterior assumia 1:1 e quebrava com
+     *      fatura com multa/juros congelados).
+     *   3. Fatura Aberta cai EXATAMENTE o valor pago — "Valor Atual da Fatura" é o
+     *      total consolidado (currentInvoice + closedInvoiceTotal, a dívida da
+     *      fechada pendente entra nesse número); ao quitar a fechada, esse valor
+     *      sai do consolidado (prova ao vivo 2026-09-20: antes R$ 4.852,26, pago
+     *      R$ 3.870,86, depois R$ 981,40).
+     * Substitui o antigo validarFaturaFechadaMenor, que aceitava até um retorno 0
+     * hardcoded como "diminuiu" — mascarava exatamente o tipo de regressão que essa
+     * validação existe pra pegar (2026-09-20).
      */
-    async validarFaturaFechadaMenor(valorAntes: number): Promise<number> {
+    async validarPagamentoTotalEfetivado(
+        valorAntes: number,
+        limiteDisponivelAntes: number,
+        aberturaAntes: number
+    ): Promise<{ fechadaDepois: number; limiteDepois: number; abertaDepois: number }> {
         // Fecha alerta de erro, modal de sucesso pós-PIN e popups (ex: drawer "Saúde
         // Financeira" que abre em cima depois do pagamento) — todos cobrem os cards.
         await this.fecharAlertaErro();
         await this.fecharModalSucessoPagamento();
         await this.popups.fecharModaisSeVisiveis();
-        const depois = await this.lerTotaisFaturas();
-        if (depois.fechada >= valorAntes) {
+
+        // (1) Badge "Paga" + valor exibido continua o ORIGINAL (imutável).
+        await this.alternarTabFatura('Fechada');
+        await expect(this.locators.faturaFechadaPagaBadge).toBeVisible({ timeout: 10000 });
+        const fechadaDepois = await this.lerValorCard(this.locators.valorTotalFaturaFechadaText);
+        if (Math.abs(fechadaDepois - valorAntes) > 0.01) {
             throw new Error(
-                `Fatura fechada pós-pagamento (R$ ${depois.fechada.toFixed(2)}) não caiu em relação ao valor real lido da UI antes do pagamento (R$ ${valorAntes.toFixed(2)}).`
+                `Fatura fechada é imutável — deveria continuar mostrando o valor original R$ ${valorAntes.toFixed(2)} (com badge Paga), mas mostra R$ ${fechadaDepois.toFixed(2)}.`
             );
         }
-        return depois.fechada;
+
+        // (3) Fatura ABERTA cai exatamente o valor pago (ela consolida a dívida da
+        // fechada pendente — ver comentário do método acima).
+        await this.alternarTabFatura('Aberta');
+        const abertaDepois = await this.lerValorCard(this.locators.valorAtualFaturaText);
+        // Diferença calculada segue a regra da fintech: TRUNCADA em 4 casas (a UI
+        // renderiza o consolidado com 2 casas arredondadas — tolerância de 0,01 abaixo
+        // cobre a diferença máxima entre truncar4 e a exibição).
+        const abertaEsperada = truncar4(aberturaAntes - valorAntes);
+        if (Math.abs(abertaDepois - abertaEsperada) > 0.01) {
+            throw new Error(
+                `Fatura aberta não caiu o valor pago após o pagamento TOTAL da fechada — antes R$ ${aberturaAntes.toFixed(2)} - pago R$ ${valorAntes.toFixed(2)} = esperado R$ ${abertaEsperada.toFixed(2)}, mas a UI mostra R$ ${abertaDepois.toFixed(2)}.`
+            );
+        }
+
+        // (2) Limite Disponível sobe — só o principal restaura (ver validarLimiteDisponivelSubiuComPagamento).
+        const limiteDepois = await this.validarLimiteDisponivelSubiuComPagamento(valorAntes, limiteDisponivelAntes);
+
+        return { fechadaDepois, limiteDepois, abertaDepois };
     }
 
     /**
@@ -150,12 +199,49 @@ export class FaturasPage {
     }
 
     /**
+     * Valida a subida do Limite Disponível após pagamento de fatura fechada, SEM
+     * assumir igualdade exata com o valor pago. Regra de negócio real (API
+     * invoiceController.js): só o PRINCIPAL restaura limite — encargos (multa/
+     * juros_mora/juros_remuneratorios/iof) já congelados no valor_total da fatura
+     * fechada NÃO restauram, mesmo quando o valor pago os inclui. A UI não expõe o
+     * breakdown principal/encargos em nenhum card desta tela, então o teste não tem
+     * como calcular o valor exato esperado — só pode validar os LIMITES matemáticos:
+     *   - o limite nunca pode CAIR após um pagamento (encargos >= 0, nunca negativo);
+     *   - o limite nunca pode subir MAIS que o valor pago (principal <= valor pago).
+     * Corrigido em 2026-09-21: a versão anterior (`toBeCloseTo(antes + pago, 1)`)
+     * assumia 1:1 e falhava sempre que a fatura tinha encargos embutidos — prova ao
+     * vivo CPF 24662236606: pago R$ 5.291,58, mas o limite só subiu R$ 3.933,06
+     * (diferença de R$ 1.358,52 = exatamente os encargos congelados na fatura).
+     */
+    private async validarLimiteDisponivelSubiuComPagamento(valorPago: number, limiteDisponivelAntes: number): Promise<number> {
+        const limiteMinimo = limiteDisponivelAntes - 0.01;
+        const limiteMaximo = limiteDisponivelAntes + valorPago + 0.01;
+        await expect
+            .poll(async () => this.lerLimiteDisponivel(), { timeout: 15000, intervals: [500, 1000, 2500] })
+            .toBeGreaterThanOrEqual(limiteMinimo);
+        const limiteDepois = await this.lerLimiteDisponivel();
+        if (limiteDepois > limiteMaximo) {
+            throw new Error(
+                `Limite Disponível subiu MAIS que o valor pago — antes R$ ${limiteDisponivelAntes.toFixed(2)}, pago R$ ${valorPago.toFixed(2)} (teto R$ ${limiteMaximo.toFixed(2)}), mas ficou R$ ${limiteDepois.toFixed(2)}.`
+            );
+        }
+        // Diferenças calculadas com a regra da fintech: TRUNCADAS em 4 casas — sem
+        // isso o ruído de float do JS vira "encargos R$ -0.00" no log (visto no
+        // CT03.4 em 2026-09-22: valorPago - restaurado = -2.8e-14).
+        const restaurado = truncar4(limiteDepois - limiteDisponivelAntes);
+        const encargosEmbutidos = truncar4(valorPago - restaurado);
+        logger.info(`   🧮 Limite: antes R$ ${limiteDisponivelAntes.toFixed(2)} + restaurado R$ ${restaurado.toFixed(2)} = depois R$ ${limiteDepois.toFixed(2)} (encargos embutidos no pagamento: R$ ${encargosEmbutidos.toFixed(2)})`);
+        return limiteDepois;
+    }
+
+    /**
      * Valida pagamento PARCIAL (Mínimo/Parcial/Menor/Maior). A fatura fechada NÃO zera
      * e o app continua exibindo o TOTAL original no card "Valor Total da Fatura Fechada"
      * (InvoiceView.getSubTabAmount retorna closedInvoice; o residual não é exposto em
      * card nenhum da UI). A prova WEB da baixa é:
-     *   1. o Limite Disponível sobe exatamente o valor pago (prova ao vivo CT03.2:
-     *      13.273,43 → 13.660,52 = +R$ 387,09);
+     *   1. o Limite Disponível sobe — só o PRINCIPAL restaura, não o valor pago inteiro
+     *      quando há encargos embutidos (ver validarLimiteDisponivelSubiuComPagamento);
+     *      prova ao vivo CT03.2 sem encargos: 13.273,43 → 13.660,52 = +R$ 387,09;
      *   2. o badge "Paga" NÃO aparece na tab Fechada (fatura segue em aberto).
      * Retorna o Limite Disponível depois do pagamento.
      */
@@ -174,13 +260,8 @@ export class FaturasPage {
             throw new Error('Fatura fechada aparece como PAGA após pagamento parcial — o app quitou a fatura inteira quando deveria ter quitado só parte.');
         }
 
-        // (1) Limite Disponível sobe exatamente o valor pago — poll porque o KPI
-        // recarrega um instante depois do modal de sucesso fechar.
-        const esperadoLimite = limiteDisponivelAntes + valorPago;
-        await expect
-            .poll(async () => this.lerLimiteDisponivel(), { timeout: 15000, intervals: [500, 1000, 2500] })
-            .toBeCloseTo(esperadoLimite, 1);
-        return this.lerLimiteDisponivel();
+        // (1) Limite Disponível sobe — só o principal restaura (ver validarLimiteDisponivelSubiuComPagamento).
+        return this.validarLimiteDisponivelSubiuComPagamento(valorPago, limiteDisponivelAntes);
     }
 
     // ---------- Tabs de fatura ----------
@@ -354,7 +435,12 @@ export class FaturasPage {
         else if (tipo === 'minimo') regex = /Pagamento fatura \(Mínimo\)/i;
         else regex = /Pagamento fatura \(Parcial\)/i;
 
-        await expect(this.page.getByRole('button', { name: regex }).first()).toBeVisible({ timeout: 10000 });
+        const item = this.page.getByRole('button', { name: regex }).first();
+        await expect(item).toBeVisible({ timeout: 10000 });
+        // Prova visual do item que casou: pagamentos de execuções anteriores acumulam na
+        // lista e um lançamento ANTIGO com o mesmo rótulo satisfaria este assert (falso
+        // positivo silencioso) — a evidência mostra qual item foi aceito.
+        await EvidenceHelper.captureStep(this.page, `Lançamento do pagamento validado (${regex})`);
     }
 
     /** Variante sem tipo (step legado "devo ver o pagamento em Ver Lançamentos..."). */

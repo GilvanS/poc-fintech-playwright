@@ -31,7 +31,7 @@ type MyFixtures = {
     testData: ScenarioData | null;
     pixMassa: PixMassa | null;
     pixSaldoState: { saldoAntes: number | null };
-    faturasApiState: { totalAntes: number | null; faturaFechadaReal: number | null; formaPagamento: 'total' | 'minimo' | 'parcial' | null; valorCustomizado: number | null; limiteDisponivelAntes: number | null; valorPagoEfetivo: number | null };
+    faturasApiState: { totalAntes: number | null; faturaFechadaReal: number | null; formaPagamento: 'total' | 'minimo' | 'parcial' | null; valorCustomizado: number | null; limiteDisponivelAntes: number | null; valorPagoEfetivo: number | null; aberturaAntes: number | null };
     loginModel: LoginModel;
     cadastroPoolState: { dados: CadastroModel | null };
     testLogger: void;
@@ -91,7 +91,7 @@ export const test = base.extend<MyFixtures>({
     // capturado via API real (não da planilha, que fica defasada a cada execução —
     // mesmo motivo/padrão do pixSaldoState). O step grava e o Then final lê.
     faturasApiState: async ({}, use) => {
-        await use({ totalAntes: null, faturaFechadaReal: null, formaPagamento: null, valorCustomizado: null, limiteDisponivelAntes: null, valorPagoEfetivo: null });
+        await use({ totalAntes: null, faturaFechadaReal: null, formaPagamento: null, valorCustomizado: null, limiteDisponivelAntes: null, valorPagoEfetivo: null, aberturaAntes: null });
     },
 
     loginModel: async ({ testData }, use) => {
@@ -165,6 +165,13 @@ export const test = base.extend<MyFixtures>({
                     : /mínimo|minimo/.test(tituloCenario) ? 'Mínimo'
                     : 'não identificado';
                 logger.info(`   📄 Fatura Fechada (pagamento ${formaPagamento}): R$ ${fmt(testData.fatura_fechada)}`);
+                // Limite disponível RAW da massa (TBL_CENARIOS), antes de qualquer ação do
+                // teste — safety net pedido em 2026-09-21: fatura_fechada pode incluir
+                // encargos (multa/juros/IOF) congelados no valor_total, que NÃO restauram
+                // limite quando pagos (só o principal restaura). Ter lim_disponivel/
+                // lim_utilizado CRU aqui permite conferir a matemática manualmente se a
+                // asserção de limite falhar, sem reconstruir estado depois via banco.
+                logger.info(`   📊 Massa (raw, TBL_CENARIOS): lim_utilizado=R$ ${fmt(testData.lim_utilizado)} | lim_disponivel=R$ ${fmt(testData.lim_disponivel)}`);
             } else if (ehPix) {
                 logger.info(`   💠 Valor PIX: R$ ${fmt((testData as ScenarioData & { 'Valor PIX'?: number | string })['Valor PIX'])}`);
             }

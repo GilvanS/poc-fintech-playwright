@@ -7,6 +7,7 @@
 | **Severidade** | **Alta** (débito duplo de cliente em produção) |
 | **Reportado por** | Suíte E2E poc-fintech-playwright — família CT03 (pagamento de faturas) |
 | **Data** | 15/09/2026 |
+| **Bugs relacionados** | `docs/BUG-REPORT-ECONNRESET-PAGAMENTO-EFETIVADO.md` — a UI oferece "Tentar novamente" após ECONNRESET mesmo com o pagamento já gravado; sem a idempotência aqui descrita, esse retry vira dupla cobrança |
 
 ## Resumo
 

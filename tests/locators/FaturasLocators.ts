@@ -147,7 +147,10 @@ export class FaturasLocators {
         // ("Pagar Total R$ 8.912,45"), por isso regex em vez de nome exato.
         this.comoDesejaPagarHeading = page.getByRole('heading', { name: 'Como deseja pagar?' });
         this.pagarTotalButton = page.getByRole('button', { name: /Pagar Total/i });
-        this.pagarMinimoDezButton = page.getByRole('button', { name: /Pagar Mínimo \(10%\)/i });
+        // Acento-tolerante (M[ií]nimo): o accessible name vem do DOM e já rodou com
+        // "Mínimo", mas o screenshot do app renderiza "Minimo" — se o texto do DOM mudar
+        // de acento, o regex não quebra (falha de locator seria ruidosa, não silenciosa).
+        this.pagarMinimoDezButton = page.getByRole('button', { name: /Pagar M[ií]nimo \(10%\)/i });
         this.valorPersonalizadoButton = page.getByRole('button', { name: 'Valor Personalizado' });
         this.valorPersonalizadoInput = page.getByPlaceholder('Ex:');
         this.continuarPagamentoFaturaButton = page

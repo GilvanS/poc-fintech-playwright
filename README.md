@@ -243,6 +243,12 @@ Cada cenário começa com um cabeçalho padronizado no log (massa carregada → 
 
 **Regra do cenário de cadastro:** `TBL_CENARIOS`/linha `cadastrar` aponta um `ID_MASSA` fixo de `TBL_CADASTRO`. Se essa massa já estiver em `TBL_MASSA_CADASTRADA` (já foi usada), o teste **falha com erro explícito** sugerindo a próxima massa livre — nunca escolhe outra sozinho. Pra gerar mais massa de cadastro: `npm run massa:cadastro -- 10`.
 
+**Premissa da massa viva — o banco da fintech diverge da planilha:** as colunas de valor de `TBL_CENARIOS` (`fatura_fechada`, `fatura_aberta`, `saldo_conta`, `lim_utilizado`, `lim_disponivel`…) são o retrato de quando o script da própria fintech gerou a massa. Como o app movimenta o próprio banco (compras, encargos, pagamentos — inclusive os das execuções anteriores da suíte), a partir da 2ª execução a UI pode mostrar valores diferentes da planilha. **Isso é estado real do banco, não massa errada** — exemplo real: CT03.1 com `fatura_aberta = 6.392,45` na planilha e R$ 7.682,74 na UI (que batia com o `lim_utilizado` vivo). A suíte é desenhada pra essa premissa:
+
+- Valores da planilha são **entrada de ação** (ex: `fatura_fechada` define o valor a pagar) e base de cálculo do mínimo (CT03.2) — nunca assert de igualdade contra a UI.
+- Validações antes/depois (Fatura Aberta, Limite Disponível, Saldo) comparam **valores lidos da UI** entre si, não contra a planilha.
+- `lim_disponivel` **negativo** é massa válida (limite estourado): o teste valida o **delta** do limite após o pagamento (sobe no máximo o valor pago, nunca cai), não o sinal nem o valor absoluto.
+
 **Preservação da formatação:** escritas nessas abas (`registrarMassaCadastrada`, `gerarMassaCadastro.ts`) usam `tests/utils/excelTableAppender.ts` — acrescenta linha via edição direta do XML do `.xlsx` (zip), nunca reescreve o workbook inteiro. Isso preserva a Tabela do Excel e todo o resto do arquivo intacto; a biblioteca `xlsx` (SheetJS free) usada só pra LEITURA não sabe re-emitir Tabelas do Excel na escrita, então qualquer script que reescreva o workbook inteiro com `XLSX.writeFile()` apagaria a formatação — `packages/gerador-massa-unificado/scripts/corrigirTblCadastro.ts` (migração pontual já aplicada) já foi corrigido pra chamar `formatarTabelas()` automaticamente depois, restaurando a formatação sozinho se for rodado de novo.
 
 ---
