@@ -39,6 +39,7 @@
     "type-check": "tsc --noEmit",
     "test:ct03.1": "npm run bdd:gen && playwright test --grep \"@CT03.1\" --project=bdd-headed",
     "test:ct03.2": "npm run bdd:gen && playwright test --grep \"@CT03.2\" --project=bdd-headed",
+    "test:ct03.6": "npm run bdd:gen && playwright test --grep \"@CT03.6\" --project=bdd-headed",
     "test:ct03.3": "npm run bdd:gen && playwright test --grep \"@CT03.3\" --project=bdd-headed",
     "test:ct03.4": "npm run bdd:gen && playwright test --grep \"@CT03.4\" --project=bdd-headed",
     "test:ct03.5": "npm run bdd:gen && playwright test --grep \"@CT03.5\" --project=bdd-headed",

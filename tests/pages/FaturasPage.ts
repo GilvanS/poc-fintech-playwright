@@ -478,4 +478,28 @@ export class FaturasPage {
     async validarErroValorMenorQueMinimo(): Promise<void> {
         await expect(this.page.getByText(/menor que o mínimo/i)).toBeVisible();
     }
+
+    /**
+     * Valida o aviso informativo da guarda de idempotência (cenário @CT03.2-reenvio):
+     * toast "Pagamento já processado ... nenhum novo valor foi debitado" VISÍVEL e o
+     * modal falso "Pagamento realizado com sucesso!" NUNCA visível — era exatamente
+     * esse sucesso falso o bug CT03.2 original (correção 26/09/2026, PR #80).
+     *
+     * Deve ser chamado IMEDIATAMENTE após o PIN de reenvio: o toast some em ~8s
+     * (AnimatePresence do Toast.tsx) e o screenshot automático do AfterStep precisa
+     * pegá-lo ainda na tela.
+     */
+    async validarToastReenvioIdempotente(): Promise<void> {
+        // Toast visível: tanto o título quanto a mensagem casam o mesmo alert.
+        await expect(this.locators.toastAvisoReenvioHeading).toBeVisible({ timeout: 10000 });
+        const textoToast = await this.locators.toastAvisoReenvioMensagem.textContent();
+        if (!textoToast || !/já havia sido processado/i.test(textoToast)) {
+            throw new Error(`Toast da idempotência exibiu conteúdo inesperado: "${textoToast?.trim() ?? '<vazio>'}".`);
+        }
+        logger.info(`🔔 Toast de reenvio exibido: "${textoToast.trim()}"`);
+
+        // Nenhum débito novo = nenhum modal de sucesso com valor (o falso sucesso).
+        await expect(this.locators.pagamentoSucessoHeading).toBeHidden({ timeout: 3000 });
+        logger.info('✅ Modal "Pagamento realizado com sucesso!" não apareceu (nenhum débito novo fingido).');
+    }
 }
