@@ -97,6 +97,14 @@ export class FaturasLocators {
     // valorDoCard (label + <p> seguinte), só leitura/registro de dado, não clique.
     readonly limiteUtilizadoCardLabel: Locator;
 
+    // Toast informativo da guarda de idempotência (Toast.tsx no WEB: role=alert,
+    // data-testid="toast-info", título "Pagamento já processado"). Disparado quando a
+    // API responde idempotent (reenvio descartado sem débito — correção CT03.2 2026-09).
+    // O modal falso "Pagamento realizado com sucesso!" NÃO pode aparecer nesse fluxo
+    // (reuso de pagamentoSucessoHeading já declarado acima).
+    readonly toastAvisoReenvioHeading: Locator;
+    readonly toastAvisoReenvioMensagem: Locator;
+
     constructor(page: Page) {
         // ---------- Legado ----------
         this.avisoFaturaAtrasoHeading = page.getByRole('heading', { name: 'Aviso de Fatura em Atraso' });
@@ -182,6 +190,20 @@ export class FaturasLocators {
 
         this.faturaFechadaPagaBadge = page.getByText('Paga', { exact: true });
         this.limiteUtilizadoCardLabel = page.getByText('Limite Utilizado');
+
+        // Toast da idempotência: no Toast.tsx do WEB, o título fica num <div> de texto
+        // puro (sem role heading — o getByRole('heading') casaria só se o markup mudar
+        // pra <h*>; por isso filter(hasText) no role=alert, que é o container inteiro).
+        this.toastAvisoReenvioHeading = page
+            .getByRole('alert')
+            .filter({ hasText: 'Pagamento já processado' })
+            .first();
+        // Mensagem completa do toast ("...já havia sido processado (data) — nenhum novo
+        // valor foi debitado...") — fica no filho testid toast-message do mesmo alert.
+        this.toastAvisoReenvioMensagem = page
+            .getByTestId('toast-message')
+            .filter({ hasText: /já havia sido processado/i })
+            .first();
     }
 
     /**

@@ -283,6 +283,40 @@ npm run bdd:dashboard         # headless — @Dashboard
 npm run bdd:dashboard:headed
 ```
 
+#### ⚠️ Intervalo entre execuções do CT03.2 (mínimo 90s entre pagamentos)
+
+O CT03.2 paga o **mínimo** da fatura fechada. A API do app tem uma **guarda de idempotência**
+(`POST /cards/invoice/pay`): pagamento de **mesmo CPF + mesmo valor** dentro de uma janela de
+**90s** é tratado como reenvio — é **descartado SEM débito** (sem transação no banco) e a
+resposta volta com `idempotent: true, debitado: false, amountPaid: 0` (mitigação de dupla
+cobrança; ver `docs/BUG-REPORT-FATURA-FECHADA-IMUTAVEL-PAGAMENTO-MINIMO.md`).
+
+Consequências práticas:
+
+- **Duas rodadas do CT03.2 com menos de 90s entre o clique de confirmar** → a 2ª cai na
+  guarda: a suíte **falha com causa explícita** (`[Dívida não baixou o valor pago]...`) pelo
+  assert de dívida derivada — comportamento **correto** (antes do fix isso passava como
+  sucesso falso).
+- No ritmo natural da suíte (run completa ≈ 75–90s + reinício do navegador) o intervalo
+  entre cliques fica em ~100–116s — **dentro do seguro**. Cuidado apenas ao encadear
+  execuções manuais em loop ou com `--grep` em cenários que pagam o MESMO valor seguidas.
+- Para repetir o CT03.2 na mesma massa em regressão, **espaçe ≥ 100s entre os cliques de
+  confirmação** (ou troque de massa em `TBL_CENARIOS`).
+- O cenário **BDD permanente** `@CT03.7` automatiza a validação determinística do reenvio:
+  `npm run test:ct03.7` (ou dentro do `test:ct03.all`). A massa é a linha CT03.7 de
+  `TBL_CENARIOS` (cópia dos dados da CT03.2): o teste injeta o pagamento original via API
+  com o modal de PIN já aberto, paga o mínimo pela UI em seguida e valida: **toast**
+  "Este pagamento já havia sido processado…", **ausência** do modal falso de sucesso e
+  **+1 pagamento** no histórico (só a injeção).
+- ⚠️ CT03.7 usa o MESMO CPF+valor do CT03.2 (cópia da linha na planilha): rodar
+  `test:ct03.2` e **imediatamente** `test:ct03.7` coloca a injeção do CT03.7 a ~60s do
+  clique do CT03.2 — dentro da janela de 90s — e a INJEÇÃO cai na guarda (falha explícita
+  `Injeção do pagamento original via API falhou... idempotent`). Espere ≥ 90s entre as duas
+  execuções. Dentro do `test:ct03.all` não há risco: os cenários intermediários (CT03.3–05)
+  distanciam os pagamentos em vários minutos. No `test:ct03.7` isolado também não há risco:
+  a injeção é sempre o 1º POST de 142,28 do ciclo (após login/navegação), e o reenvio da UI
+  vem 3–10s depois — o par guarda/cenário funciona como desenhado.
+
 ### Parâmetros de execução (`.env`)
 
 Todos os parâmetros de execução ficam no **`.env`** (leia pelo `playwright.config.ts`). O arquivo

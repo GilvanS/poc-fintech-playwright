@@ -21,6 +21,23 @@ import { obterMassaPixDoCenario, PixMassa } from '../tests/utils/massaPix';
 // Ponto único de fixtures do projeto — 1 fixture por Page Object (landingPage/cadastroPage/
 // pixPage/dashboardPage) junto com a camada COMPOSTA cross-feature (authFlow usa
 // Landing+Dashboard) e o estado de massa/log global, tudo num .extend() só.
+// Estado de runtime do cenário de Faturas — exportado porque os steps de reenvio
+// (@CT03.2-reenvio) tipam os helpers de API com ele.
+export type FaturasApiState = {
+    totalAntes: number | null;
+    faturaFechadaReal: number | null;
+    formaPagamento: 'total' | 'minimo' | 'parcial' | null;
+    valorCustomizado: number | null;
+    limiteDisponivelAntes: number | null;
+    valorPagoEfetivo: number | null;
+    aberturaAntes: number | null;
+    dividaFechadaAntes: number | null;
+    cpf: string | null;
+    senha: string | null;
+    pagamentosAntesCount: number | null;
+    dividaPosInjecao: number | null;
+};
+
 type MyFixtures = {
     landingPage: LandingPage;
     cadastroPage: CadastroPage;
@@ -31,7 +48,7 @@ type MyFixtures = {
     testData: ScenarioData | null;
     pixMassa: PixMassa | null;
     pixSaldoState: { saldoAntes: number | null };
-    faturasApiState: { totalAntes: number | null; faturaFechadaReal: number | null; formaPagamento: 'total' | 'minimo' | 'parcial' | null; valorCustomizado: number | null; limiteDisponivelAntes: number | null; valorPagoEfetivo: number | null; aberturaAntes: number | null };
+    faturasApiState: FaturasApiState;
     loginModel: LoginModel;
     cadastroPoolState: { dados: CadastroModel | null };
     testLogger: void;
@@ -66,7 +83,8 @@ export const test = base.extend<MyFixtures>({
         // Cenários BDD (playwright-bdd) têm testInfo.title = nome do Scenario, sem o ID —
         // o ID só sobrevive na tag (@CT01.1). Specs .spec.ts continuam com o ID no título.
         const tag = testInfo.tags?.find((t) => /^@(CT-?\d+(\.\d+)?|cadastrar)$/i.test(t));
-        const scenario = TestContext.loadFromTestTitle(tag ? tag.replace('@', '') : testInfo.title);
+        const idCenario = tag ? tag.replace('@', '') : null;
+        const scenario = TestContext.loadFromTestTitle(idCenario ?? testInfo.title);
         await use(scenario);
     },
 
@@ -91,7 +109,7 @@ export const test = base.extend<MyFixtures>({
     // capturado via API real (não da planilha, que fica defasada a cada execução —
     // mesmo motivo/padrão do pixSaldoState). O step grava e o Then final lê.
     faturasApiState: async ({}, use) => {
-        await use({ totalAntes: null, faturaFechadaReal: null, formaPagamento: null, valorCustomizado: null, limiteDisponivelAntes: null, valorPagoEfetivo: null, aberturaAntes: null });
+        await use({ totalAntes: null, faturaFechadaReal: null, formaPagamento: null, valorCustomizado: null, limiteDisponivelAntes: null, valorPagoEfetivo: null, aberturaAntes: null, dividaFechadaAntes: null, cpf: null, senha: null, pagamentosAntesCount: null, dividaPosInjecao: null });
     },
 
     loginModel: async ({ testData }, use) => {
