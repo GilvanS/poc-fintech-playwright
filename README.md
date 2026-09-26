@@ -302,18 +302,18 @@ Consequências práticas:
   execuções manuais em loop ou com `--grep` em cenários que pagam o MESMO valor seguidas.
 - Para repetir o CT03.2 na mesma massa em regressão, **espaçe ≥ 100s entre os cliques de
   confirmação** (ou troque de massa em `TBL_CENARIOS`).
-- O cenário **BDD permanente** `@CT03.6` automatiza a validação determinística do reenvio:
-  `npm run test:ct03.6` (ou dentro do `test:ct03.all`). A massa é a linha CT03.6 de
+- O cenário **BDD permanente** `@CT03.7` automatiza a validação determinística do reenvio:
+  `npm run test:ct03.7` (ou dentro do `test:ct03.all`). A massa é a linha CT03.7 de
   `TBL_CENARIOS` (cópia dos dados da CT03.2): o teste injeta o pagamento original via API
   com o modal de PIN já aberto, paga o mínimo pela UI em seguida e valida: **toast**
   "Este pagamento já havia sido processado…", **ausência** do modal falso de sucesso e
   **+1 pagamento** no histórico (só a injeção).
-- ⚠️ CT03.6 usa o MESMO CPF+valor do CT03.2 (cópia da linha na planilha): rodar
-  `test:ct03.2` e **imediatamente** `test:ct03.6` coloca a injeção do CT03.6 a ~60s do
+- ⚠️ CT03.7 usa o MESMO CPF+valor do CT03.2 (cópia da linha na planilha): rodar
+  `test:ct03.2` e **imediatamente** `test:ct03.7` coloca a injeção do CT03.7 a ~60s do
   clique do CT03.2 — dentro da janela de 90s — e a INJEÇÃO cai na guarda (falha explícita
   `Injeção do pagamento original via API falhou... idempotent`). Espere ≥ 90s entre as duas
   execuções. Dentro do `test:ct03.all` não há risco: os cenários intermediários (CT03.3–05)
-  distanciam os pagamentos em vários minutos. No `test:ct03.6` isolado também não há risco:
+  distanciam os pagamentos em vários minutos. No `test:ct03.7` isolado também não há risco:
   a injeção é sempre o 1º POST de 142,28 do ciclo (após login/navegação), e o reenvio da UI
   vem 3–10s depois — o par guarda/cenário funciona como desenhado.
 

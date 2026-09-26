@@ -258,7 +258,7 @@ Nota: as injeções da Bateria B são débitos REAIS e legítimos no banco (4 ×
 registrados em `paymentHistory`); a massa 4 segue utilizável com residual 643,35.
 
 **Verificação determinística do toast:** automatizada como cenário BDD permanente
-`@CT03.6` (faturas.feature, poc-fintech-playwright) — `npm run test:ct03.6`. Leva a UI até
+`@CT03.7` (faturas.feature, poc-fintech-playwright) — `npm run test:ct03.7`. Leva a UI até
 o modal de PIN antes de injetar o pagamento original via API (elimina a corrida dos 90s),
 valida o toast visível, a ausência do modal falso e que o histórico de pagamentos cresceu
 exatamente 1. (O script one-off `scripts/validar-toast-idempotencia.ts` que fez a primeira

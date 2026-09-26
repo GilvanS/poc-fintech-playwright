@@ -36,7 +36,7 @@ Feature: Consulta e pagamento de faturas do cartão
     Then devo ver o total das faturas diminuído após o pagamento
     And devo ver o pagamento de "Mínimo" em Ver Lançamentos na Fatura Aberta
 
-  @CT03.6 @Faturas
+  @CT03.7 @Faturas
   Scenario: Reenvio do pagamento mínimo cai na guarda de idempotência sem débito novo
     When eu valido que a fatura pode ser paga
     And eu navego para a tela de Faturas pelo dashboard

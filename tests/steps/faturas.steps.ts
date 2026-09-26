@@ -4,7 +4,7 @@ import { PinModalComponent } from '../pages/components/PinModalComponent';
 import { calcularMinimoFatura, truncar4 } from '../utils/moeda';
 import { logger } from '../utils/logger';
 
-// ── Cenário @CT03.6 (guarda de idempotência, bug CT03.2 2026-09) ──
+// ── Cenário @CT03.7 (guarda de idempotência, bug CT03.2 2026-09) ──
 // Helpers de API (:3001) usados pela injeção do "pagamento original" e pelos asserts
 // de não-débito. Login/GET /users seguem o mesmo padrão dos steps de captura acima —
 // sem fallback silencioso: falha de API é erro do cenário, nunca valor chutado.
@@ -287,7 +287,7 @@ When('eu digito o PIN da massa no teclado da confirmação', async ({ page, fatu
     await faturasPage.validarErroSaldoInsuficiente();
 });
 
-// ════════ Cenário @CT03.6 — guarda de idempotência do pagamento de fatura ════════
+// ════════ Cenário @CT03.7 — guarda de idempotência do pagamento de fatura ════════
 // Bug CT03.2 2026-09: o reenvio do mesmo pagamento (cpf+valor em <90s) era descartado
 // pela API MAS a UI exibia o modal falso "Pagamento realizado com sucesso!" como se
 // houvesse débito novo. Correção (PR #80): API responde idempotent/debitado:false e o
@@ -300,7 +300,7 @@ When('eu digito o PIN da massa no teclado da confirmação', async ({ page, fatu
 When('eu injeto o pagamento original via API com o modal de PIN aberto', async ({ page, faturasApiState, testData }) => {
     test.setTimeout(180000);
     if (!testData) {
-        throw new Error('Massa não encontrada em TBL_CENARIOS para o CT03.6 (reenvio).');
+        throw new Error('Massa não encontrada em TBL_CENARIOS para o CT03.7 (reenvio).');
     }
     const pin = String(testData.PIN ?? '').trim() || PIN_FALLBACK;
 
@@ -345,7 +345,7 @@ When('eu injeto o pagamento original via API com o modal de PIN aberto', async (
 
 When('eu digito o PIN da massa para o reenvio do pagamento', async ({ page, faturasPage, faturasApiState, testData }) => {
     if (!testData) {
-        throw new Error('Massa não encontrada em TBL_CENARIOS para o CT03.6 (reenvio).');
+        throw new Error('Massa não encontrada em TBL_CENARIOS para o CT03.7 (reenvio).');
     }
     const pin = String(testData.PIN ?? '').trim() || PIN_FALLBACK;
     const pinModal = new PinModalComponent(page);
