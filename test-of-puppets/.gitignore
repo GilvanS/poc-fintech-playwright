@@ -1,0 +1,10 @@
+node_modules/
+dist/
+
+# Artefatos do E2E (relatório, capturas e traces de teste que falhou).
+test-results/
+playwright-report/
+
+# Dados de execução da ferramenta (planos, execuções, INC...). Só o .gitkeep vai para o git.
+dados/*
+!dados/.gitkeep
