@@ -13,7 +13,23 @@ export default defineConfig({
     strictPort: true,
     proxy: { '/api': API },
   },
-  build: { outDir: '../dist', emptyOutDir: true },
+  build: {
+    outDir: '../dist',
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        // As bibliotecas saem do pacote principal: cada bloco fica abaixo de 500 kB (sem o aviso do build) e
+        // quase nunca muda, então o navegador reaproveita do cache quando só o código da ferramenta muda.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react';
+          if (id.includes('node_modules/lucide-react')) return 'icones';
+          if (id.includes('node_modules/gsap')) return 'gsap';
+          return undefined;
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

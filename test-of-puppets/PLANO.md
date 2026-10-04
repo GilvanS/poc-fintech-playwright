@@ -840,7 +840,9 @@ tipos de lembrete aparecem no sino, em `dados/config.json`; `PUT /api/config` ac
 `/api/lembretes` filtra pelos tipos ligados; sem "planilha lida", por causa da decisão de não ler o Excel; 202 testes do
 servidor + 555 da tela + 22 E2E).** **Release e Retro, pontas fechadas (04/10/2026):** INC aberto depois do GO reavalia,
 "abrir teste" nos critérios e pendências clicáveis, e aviso de ações pendentes de retros anteriores ao abrir um plano
-(`AcoesPendentesAnteriores`, com "abrir retro"). Adiadas de propósito: T7 e T9;
+(`AcoesPendentesAnteriores`, com "abrir retro"). **Build sem aviso de tamanho** (`vite.config.ts` separa `react`, `icones`
+e `gsap` do pacote principal: o maior bloco caiu de 602 kB para 280 kB; conferido abrindo o `dist` no Chromium).
+Adiadas de propósito: T7 e T9;
 a T11 traz os cenários de exemplo (hoje a lista nasce vazia).
 Use o PowerShell para `npm install`/`npm test`/`npm run dev`.
 **Escopo atual (decisão do usuário, 02/10/2026): SEM EXECUÇÃO.** Por enquanto a ferramenta só **planeja e
