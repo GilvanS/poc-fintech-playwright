@@ -715,6 +715,12 @@ INC aberto. "Marcar como lida" persiste em `dados/`.
 > `dados/antes-da-semente-aaaammdd-hhmmss/`) e o botão **"Carregar dados de exemplo"** na tela de Planos quando tudo
 > está vazio (`POST /api/semente`). **Nunca sobrescreve**: qualquer cenário, pessoa ou plano já existente recusa
 > (409 `ja_tem_dados`). Texto antigo abaixo (planilha, cor da linha) não vale mais.
+> **Atualizada em 04/10/2026:** a semente também traz os 3 INC, a **retro** do plano `14/09/26` (4 notas votadas por
+> Ana, Bia e Carlos; ação "Ordenar CT03.2 antes do CT03.7" pendente da Ana até 20/10 e "Revisar as estimativas…" feita
+> pelo Carlos) e uma **decisão NO-GO** da Ana no Release do plano `28/09/26` (critérios 1 a 5 abertos). Por isso o
+> sino da Ana já nasce com o INC dela e a ação pendente da retro. Dados em `RETRO_SEMENTE` e `DECISAO_SEMENTE`
+> (`server/src/semente/dados.ts`); as horas das notas e da decisão são as de quando se semeia (os repositórios carimbam).
+> O `--forcar` agora guarda e troca também `retros.json` e `lembretes.json`; `temDados` conta retros.
 
 **Objetivo (atualizado em 02/10/2026):** criar dados **fictícios** (os 8 testes, 3 pessoas e 3 INC de
 [visoes/README.md](visoes/README.md)) para a ferramenta abrir já com conteúdo e para os testes da T12.

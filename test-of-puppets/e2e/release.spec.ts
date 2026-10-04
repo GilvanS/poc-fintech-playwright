@@ -20,7 +20,10 @@ test('Release: critérios, decisão com exceção gravada no servidor e "Reavali
   await expect(page.getByTestId('cumpridos')).toContainText('de 7');
   await expect(page.getByTestId('situacao')).toContainText('Situação: NO-GO');
   await expect(page.getByTestId('criterio-3')).toContainText('2 abertos (Alta 1, Média 1)');
-  await expect(page.getByText('(nenhuma ainda)')).toBeVisible();
+  // A semente traz um NO-GO da Ana no histórico.
+  await expect(page.getByTestId('historico-decisoes')).toContainText('NO-GO');
+  await expect(page.getByTestId('historico-decisoes')).toContainText('Aguardar a correção do INC0715802225');
+  await expect(page.getByTestId('situacao')).not.toContainText('REAVALIAR');
 
   // "ver" abre o que falta; o INC leva para a tela de Incidentes.
   await page.getByRole('button', { name: 'Ver critério 3' }).click();
@@ -32,7 +35,7 @@ test('Release: critérios, decisão com exceção gravada no servidor e "Reavali
   await expect(modal.getByRole('radio', { name: 'GO', exact: true })).toBeDisabled();
   await modal.getByRole('button', { name: 'Registrar' }).click();
   await expect(modal.getByRole('alert')).toContainText('Justificativa é obrigatória.');
-  expect((await plano()).plano.decisoes).toBeUndefined();
+  expect((await plano()).plano.decisoes).toHaveLength(1); // nada novo foi gravado
 
   // GO com exceção: o servidor guarda quem decidiu, a justificativa e os critérios abertos.
   await modal.getByRole('radio', { name: 'GO com exceção' }).check();
@@ -40,9 +43,10 @@ test('Release: critérios, decisão com exceção gravada no servidor e "Reavali
   await modal.getByRole('button', { name: 'Registrar' }).click();
   await expect(modal).toHaveCount(0);
   const gravada = (await plano()).plano.decisoes ?? [];
-  expect(gravada).toHaveLength(1);
-  expect(gravada[0]).toMatchObject({ decisao: 'go_excecao', por: 'ana', justificativa: 'Risco aceito: o INC é de baixo impacto.' });
-  expect(gravada[0].criterios.length).toBeGreaterThan(0);
+  expect(gravada).toHaveLength(2);
+  expect(gravada[0]).toMatchObject({ decisao: 'no_go', por: 'ana' }); // a da semente continua lá
+  expect(gravada[1]).toMatchObject({ decisao: 'go_excecao', por: 'ana', justificativa: 'Risco aceito: o INC é de baixo impacto.' });
+  expect(gravada[1].criterios.length).toBeGreaterThan(0);
   await expect(page.getByTestId('selo-liberado')).toContainText('por Ana');
   await expect(page.getByTestId('historico-decisoes')).toContainText('GO com exceção');
 

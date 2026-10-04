@@ -63,6 +63,33 @@ export const INCIDENTES_SEMENTE: (NovoIncidente & { comentarios?: { autor: strin
   },
 ];
 
+/**
+ * Retro de exemplo do plano já concluído (14/09/26): notas dos dois lados com votos, uma ação pendente e uma feita.
+ * Os textos não repetem as sugestões automáticas de propósito, para elas continuarem aparecendo na tela.
+ */
+export const RETRO_SEMENTE = {
+  plano: '14/09/26',
+  notas: [
+    { coluna: 'bem' as const, texto: 'Kanban com WIP evitou 2 execuções ao mesmo tempo.', autor: 'ana', votos: ['bia', 'carlos'] },
+    { coluna: 'bem' as const, texto: 'Evidência gerada sozinha no fim de cada teste.', autor: 'carlos', votos: ['ana'] },
+    { coluna: 'melhorar' as const, texto: 'Reuso de massa sem ordem gerou reexecuções.', autor: 'bia', votos: ['ana', 'bia', 'carlos'] },
+    { coluna: 'melhorar' as const, texto: 'Estimativa ficou abaixo do tempo real.', autor: 'carlos', votos: ['bia'] },
+  ],
+  acoes: [
+    { texto: 'Ordenar CT03.2 antes do CT03.7 (massa 0483)', responsavel: 'ana', prazo: '2026-10-20', origem: 'Reuso de massa sem ordem gerou reexecuções.', feitaPor: null },
+    { texto: 'Revisar as estimativas dos testes de Cadastro', responsavel: 'carlos', prazo: '2026-09-28', origem: 'Estimativa ficou abaixo do tempo real.', feitaPor: 'carlos' },
+  ],
+};
+
+/** Decisão de exemplo do Release do plano em andamento: NO-GO, com os critérios 1 a 5 ainda abertos. */
+export const DECISAO_SEMENTE = {
+  plano: '28/09/26',
+  decisao: 'no_go' as const,
+  por: 'ana',
+  justificativa: 'Aguardar a correção do INC0715802225 e a reexecução do CT05.2.',
+  criterios: [1, 2, 3, 4, 5],
+};
+
 export interface ItemSemente {
   idCenario: string;
   campos: CamposItem;

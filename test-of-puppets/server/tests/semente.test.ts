@@ -33,12 +33,12 @@ async function planoPorNome(s: Awaited<ReturnType<typeof iniciar>>, nome: string
   return (await s.json('GET', `/api/planos/${achado.id}`)).corpo;
 }
 
-test('POST /api/semente com tudo vazio cria 8 cenários, 3 pessoas e 3 planos', async () => {
+test('POST /api/semente com tudo vazio cria 8 cenários, 3 pessoas, 3 planos, 3 INC, 1 retro e 1 decisão', async () => {
   const s = await iniciar();
   try {
     const r = await s.json('POST', '/api/semente');
     assert.equal(r.status, 201);
-    assert.deepEqual(r.corpo, { cenarios: 8, pessoas: 3, planos: 3, incidentes: 3 });
+    assert.deepEqual(r.corpo, { cenarios: 8, pessoas: 3, planos: 3, incidentes: 3, retros: 1, decisoes: 1 });
     assert.equal((await s.json('GET', '/api/cenarios')).corpo.cenarios.length, 8);
     assert.deepEqual((await s.json('GET', '/api/pessoas')).corpo.pessoas.map((p: Json) => [p.id, p.capacidadeMinSemana]), [
       ['ana', 120],
@@ -122,6 +122,61 @@ test('abas: o plano 14/09/26 já está executado, o 28/09/26 e o 05/10/26 estão
   }
 });
 
+test('a retro de exemplo está no plano concluído: 4 notas votadas, 1 ação feita e 1 pendente da Ana', async () => {
+  const s = await iniciar();
+  try {
+    await s.json('POST', '/api/semente');
+    const concluido = await planoPorNome(s, '14/09/26');
+    const retro = (await s.json('GET', `/api/retros/${concluido.plano.id}`)).corpo;
+    assert.equal(retro.status, 'aberta');
+    assert.equal(retro.anonimas, false);
+    assert.deepEqual(retro.notas.map((n: Json) => [n.coluna, n.autor, n.votos]), [
+      ['bem', 'ana', ['bia', 'carlos']],
+      ['bem', 'carlos', ['ana']],
+      ['melhorar', 'bia', ['ana', 'bia', 'carlos']],
+      ['melhorar', 'carlos', ['bia']],
+    ]);
+    const [pendente, feita] = retro.acoes as Json[];
+    assert.deepEqual([pendente.responsavel, pendente.prazo, pendente.feito, pendente.incId], ['ana', '2026-10-20', false, null]);
+    assert.equal(pendente.origem, 'Reuso de massa sem ordem gerou reexecuções.');
+    assert.deepEqual([feita.responsavel, feita.feito, feita.feitoPor], ['carlos', true, 'carlos']);
+
+    const emAndamento = await planoPorNome(s, '28/09/26');
+    assert.equal((await s.json('GET', `/api/retros/${emAndamento.plano.id}`)).corpo.notas.length, 0, 'só o plano concluído tem retro');
+  } finally {
+    await s.fechar();
+  }
+});
+
+test('a decisão de exemplo é um NO-GO da Ana no plano em andamento, com os critérios 1 a 5 abertos', async () => {
+  const s = await iniciar();
+  try {
+    await s.json('POST', '/api/semente');
+    const p = await planoPorNome(s, '28/09/26');
+    assert.equal(p.plano.decisoes.length, 1);
+    assert.deepEqual(
+      { decisao: p.plano.decisoes[0].decisao, por: p.plano.decisoes[0].por, criterios: p.plano.decisoes[0].criterios },
+      { decisao: 'no_go', por: 'ana', criterios: [1, 2, 3, 4, 5] },
+    );
+    assert.match(p.plano.decisoes[0].justificativa, /INC0715802225/);
+    assert.equal((await planoPorNome(s, '14/09/26')).plano.decisoes, undefined);
+  } finally {
+    await s.fechar();
+  }
+});
+
+test('o sino da Ana com a semente: INC dela, ação pendente da retro e nenhum teste de hoje', async () => {
+  const s = await iniciar();
+  try {
+    await s.json('POST', '/api/semente');
+    const r = (await s.json('GET', '/api/lembretes?voce=ana&hoje=2026-10-04')).corpo;
+    assert.deepEqual(r.lembretes.map((l: Json) => l.tipo), ['inc_aberto', 'acao_retro']);
+    assert.equal(r.lembretes[1].detalhe, 'Ordenar CT03.2 antes do CT03.7 (massa 0483) · até 20/10/2026');
+  } finally {
+    await s.fechar();
+  }
+});
+
 test('os responsáveis dos testes existem na Equipe de exemplo', async () => {
   const s = await iniciar();
   try {
@@ -173,7 +228,7 @@ test('executarSemente em pasta vazia semeia e devolve código 0', async () => {
   const saida: string[] = [];
   const codigo = await executarSemente({ dirDados: dir, forcar: false, escrever: (t) => saida.push(t) });
   assert.equal(codigo, 0);
-  assert.match(saida.join('\n'), /8 cenários, 3 pessoas, 3 planos e 3 incidentes/);
+  assert.match(saida.join('\n'), /8 cenários, 3 pessoas, 3 planos, 3 incidentes, 1 retro e 1 decisão de release/);
   const nomes = (await readdir(dir)).sort();
   assert.ok(nomes.includes('cenarios.json') && nomes.includes('pessoas.json') && nomes.includes('planos.json'));
 });
@@ -188,6 +243,18 @@ test('executarSemente com dados existentes recusa (código 1), explica o --forca
   assert.match(saida.join('\n'), /--forcar/);
   assert.equal(await readFile(join(dir, 'cenarios.json'), 'utf8'), meu);
   assert.equal((await readdir(dir)).length, 1);
+});
+
+test('executarSemente --forcar sobre uma semente antiga guarda também a retro e semeia uma nova', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'puppets-cli-'));
+  await executarSemente({ dirDados: dir, forcar: false, escrever: () => undefined });
+  const antiga = await readFile(join(dir, 'retros.json'), 'utf8');
+  const codigo = await executarSemente({ dirDados: dir, forcar: true, escrever: () => undefined, agora: () => new Date(2026, 9, 4, 9, 0, 0) });
+  assert.equal(codigo, 0);
+  assert.equal(await readFile(join(dir, 'antes-da-semente-20261004-090000', 'retros.json'), 'utf8'), antiga);
+  const nova = JSON.parse(await readFile(join(dir, 'retros.json'), 'utf8')) as Json;
+  assert.equal(nova.retros.length, 1);
+  assert.equal(nova.retros[0].notas.length, 4);
 });
 
 test('executarSemente --forcar guarda uma cópia dos arquivos antigos numa subpasta e semeia', async () => {

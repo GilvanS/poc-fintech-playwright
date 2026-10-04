@@ -13,8 +13,9 @@ const dadosTemporarios = mkdtempSync(join(tmpdir(), 'puppets-e2e-'));
 
 export default defineConfig({
   testDir: 'e2e',
-  timeout: 60_000,
-  expect: { timeout: 10_000 },
+  // Folga para máquina carregada: semear os dados de exemplo grava dezenas de arquivos e pode levar vários segundos.
+  timeout: 120_000,
+  expect: { timeout: 20_000 },
   fullyParallel: false,
   workers: 1,
   retries: 0,

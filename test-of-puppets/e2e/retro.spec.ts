@@ -33,8 +33,9 @@ test('Retro: sugestão vira nota, voto, anônimas, ação com INC, fechar e reab
   const primeira = page.getByTestId('sugestoes').getByRole('listitem').first();
   const textoSugestao = ((await primeira.locator('span').first().textContent()) ?? '').replace('• ', '');
   await primeira.getByRole('button').click();
-  await expect.poll(async () => (await retro()).notas.length).toBe(1);
-  expect((await retro()).notas[0]).toMatchObject({ texto: textoSugestao, autor: 'ana', votos: [] });
+  // A semente já traz 4 notas de exemplo; a sugestão vira a quinta.
+  await expect.poll(async () => (await retro()).notas.length).toBe(5);
+  expect((await retro()).notas.at(-1)).toMatchObject({ texto: textoSugestao, autor: 'ana', votos: [] });
 
   // Nota escrita à mão na coluna "Foi bem".
   const nota = 'Kanban com WIP evitou execuções em paralelo.';
@@ -71,22 +72,25 @@ test('Retro: sugestão vira nota, voto, anônimas, ação com INC, fechar e reab
   await expect(modal).toHaveCount(0);
   await expect(page.getByTestId('coluna-retro-acoes')).toContainText('Manter o limite de WIP em 3');
   await expect(page.getByTestId('coluna-retro-acoes')).toContainText('INC0900001');
-  expect((await retro()).acoes[0]).toMatchObject({ texto: 'Manter o limite de WIP em 3', responsavel: 'ana', incId: 'INC0900001', origem: nota });
+  // A semente já traz 2 ações; a nova é a terceira.
+  expect((await retro()).acoes).toHaveLength(3);
+  expect((await retro()).acoes.at(-1)).toMatchObject({ texto: 'Manter o limite de WIP em 3', responsavel: 'ana', incId: 'INC0900001', origem: nota });
   const incidentes = ((await (await request.get(`${URL_API}/api/incidentes`)).json()) as { incidentes: { numero: string; severidade: string; titulo: string }[] }).incidentes;
   expect(incidentes.find((i) => i.numero === 'INC0900001')).toMatchObject({ severidade: 'alta', titulo: 'Manter o limite de WIP em 3' });
 
   // Marcar a ação como feita grava quem fez.
   await page.getByRole('checkbox', { name: 'Marcar como feita: Manter o limite de WIP em 3' }).click();
   await expect(page.getByRole('checkbox', { name: 'Marcar como feita: Manter o limite de WIP em 3' })).toBeChecked();
-  await expect.poll(async () => (await retro()).acoes[0].feito).toBe(true);
-  expect((await retro()).acoes[0].feitoPor).toBe('ana');
+  await expect.poll(async () => (await retro()).acoes.at(-1)?.feito).toBe(true);
+  expect((await retro()).acoes.at(-1)?.feitoPor).toBe('ana');
 
   // Fechar trava notas e votos; as ações continuam editáveis.
   await page.getByRole('button', { name: 'Fechar retro' }).click();
   await expect(page.getByTestId('retro-status')).toContainText('FECHADA');
   expect(await retro()).toMatchObject({ status: 'fechada', fechadaPor: 'ana' });
   await expect(page.getByRole('button', { name: 'Nova nota (Foi bem)' })).toBeDisabled();
-  await expect(page.getByTestId('resumo-acoes')).toContainText('Ações concluídas (1)');
+  await expect(page.getByTestId('resumo-acoes')).toContainText('Ações pendentes (1)'); // a "Ordenar CT03.2…" da semente
+  await expect(page.getByTestId('resumo-acoes')).toContainText('Ações concluídas (2)'); // a "Revisar…" da semente + a nossa
   const recusado = await request.post(`${URL_API}/api/retros/${idPlano}/notas`, { data: { coluna: 'bem', texto: 'Tarde demais', autor: 'bia' } });
   expect(recusado.status()).toBe(409);
 

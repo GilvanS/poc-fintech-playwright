@@ -27,9 +27,9 @@ test('Sino: teste de hoje aparece, marcar como lida persiste por pessoa, abrir l
   const doTeste = inicial.lembretes.find((l) => l.tipo === 'teste_hoje');
   expect(doTeste?.detalhe).toContain(alvo?.idCenario ?? '?');
   const total = inicial.naoLidas;
-  // O teste de hoje + o INC aberto da Ana (o da Bia não aparece para ela).
-  expect(inicial.lembretes.map((l) => l.tipo).sort()).toEqual(['inc_aberto', 'teste_hoje']);
-  expect(total).toBe(2);
+  // O teste de hoje + o INC aberto da Ana + a ação pendente da retro de exemplo (o INC da Bia não aparece para ela).
+  expect(inicial.lembretes.map((l) => l.tipo).sort()).toEqual(['acao_retro', 'inc_aberto', 'teste_hoje']);
+  expect(total).toBe(3);
 
   await abrirApp(page);
   await page.getByRole('combobox', { name: 'Você' }).selectOption('ana');

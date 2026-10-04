@@ -11,7 +11,7 @@ export interface OpcoesSemente {
   agora?: () => Date;
 }
 
-const ARQUIVOS = ['cenarios.json', 'pessoas.json', 'planos.json', 'incidentes.json'];
+const ARQUIVOS = ['cenarios.json', 'pessoas.json', 'planos.json', 'incidentes.json', 'retros.json', 'lembretes.json'];
 
 const dois = (n: number) => String(n).padStart(2, '0');
 const carimbo = (d: Date) =>
@@ -38,6 +38,6 @@ export async function executarSemente({ dirDados, forcar, escrever = console.log
   }
 
   const resumo = await semear(repos);
-  escrever(`Semente carregada: ${resumo.cenarios} cenários, ${resumo.pessoas} pessoas, ${resumo.planos} planos e ${resumo.incidentes} incidentes em ${dirDados}.`);
+  escrever(`Semente carregada: ${resumo.cenarios} cenários, ${resumo.pessoas} pessoas, ${resumo.planos} planos, ${resumo.incidentes} incidentes, ${resumo.retros} retro e ${resumo.decisoes} decisão de release em ${dirDados}.`);
   return 0;
 }
