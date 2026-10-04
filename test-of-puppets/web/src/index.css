@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* Paleta do FintechBankApp (modo midnight/dark) — somente tema escuro. Ver VISOES.md §4.1. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-volt-page: #0f0f0f;
+  --color-volt-dark: #131313;
+  --color-volt-surface: #201f1f;
+  --color-volt-surface-low: #1c1b1b;
+  --color-volt-surface-high: #2a2a2a;
+  --color-volt-surface-top: #353534;
+  --color-volt-green: #00ff9d;
+  --color-volt-green-dark: #00e38b;
+  --color-volt-yellow: #ffd700;
+  --color-volt-lime: #a2ff00;
+  --color-volt-cyan: #00e5ff;
+  --color-volt-pink: #ff5c8d;
+  --color-on-surface: #e5e2e1;
+  --color-on-surface-variant: #b9cbbc;
+  --color-neon-secondary: #c9bfff;
+  --color-neon-outline: #849587;
+  --color-neon-error: #ffb4ab;
+}
+
+html,
+body {
+  background: var(--color-volt-page);
+  color: var(--color-on-surface);
+  margin: 0;
+}
+
+/* ─── Matrix dot loader (copiado do Admin; usado como enfeite do cabeçalho) ─── */
+:root {
+  --matrix-cycle: 1200ms;
+  --matrix-base: #3a3a3e;
+  --matrix-active: #b8b8c2;
+  --matrix-ease: ease-in-out;
+}
+
+.t-matrix {
+  display: grid;
+  grid-template-columns: repeat(4, 2px);
+  grid-auto-rows: 2px;
+  gap: 2px;
+}
+
+.t-matrix i {
+  display: block;
+  background: var(--matrix-base);
+  animation: t-matrix-pulse var(--matrix-cycle) var(--matrix-ease) infinite;
+  animation-delay: calc(var(--d, 0) * 1ms);
+}
+
+.t-matrix i.is-gap {
+  visibility: hidden;
+  animation: none;
+}
+
+@keyframes t-matrix-pulse {
+  0%,
+  45%,
+  100% {
+    background-color: var(--matrix-base);
+  }
+  15% {
+    background-color: var(--matrix-active);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-matrix i {
+    animation: none !important;
+  }
+}
