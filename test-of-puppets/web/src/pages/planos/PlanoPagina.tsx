@@ -14,6 +14,8 @@ interface Props {
   filtrosIniciais?: Filtros;
   /** Abre já o detalhe deste teste (o "abrir teste" do Release). */
   testeInicial?: string;
+  /** "abrir retro" do aviso de ações pendentes de retros anteriores. */
+  onAbrirRetro?: (planoId: string) => void;
   /** Botões ao lado do título (ex.: "Excluir visão"). */
   acoes?: ReactNode;
   /** Muda quando a visão muda, para os filtros recomeçarem do que a visão guardou. */
@@ -27,7 +29,7 @@ interface Props {
  * Página de "Lista", "Kanban" e das visões salvas: o plano escolhido no cabeçalho em tela cheia,
  * já na visão do menu (lista ou cards) e com os filtros que a visão guardou.
  */
-export default function PlanoPagina({ titulo, icone: Icone, tipo, plano, filtrosIniciais, testeInicial, acoes, chaveReinicio, onIrParaPlanos, onMudou }: Props) {
+export default function PlanoPagina({ titulo, icone: Icone, tipo, plano, filtrosIniciais, testeInicial, onAbrirRetro, acoes, chaveReinicio, onIrParaPlanos, onMudou }: Props) {
   return (
     <section aria-label={titulo} className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -46,6 +48,7 @@ export default function PlanoPagina({ titulo, icone: Icone, tipo, plano, filtros
           visaoInicial={tipo === 'kanban' ? 'card' : 'lista'}
           filtrosIniciais={filtrosIniciais}
           testeInicial={testeInicial}
+          onAbrirRetro={onAbrirRetro}
           onFechar={onMudou}
           onMudou={onMudou}
         />

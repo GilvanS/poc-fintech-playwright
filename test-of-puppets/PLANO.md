@@ -838,7 +838,9 @@ vencido, INC aberto e ação de retro, "lida" por pessoa em `dados/lembretes.jso
 21 E2E).** **Configurações ✔ (04/10/2026: a página deixou de ser provisória — limites de WIP pelo mesmo modal M13 e quais
 tipos de lembrete aparecem no sino, em `dados/config.json`; `PUT /api/config` aceita `wip` e/ou `lembretes` e
 `/api/lembretes` filtra pelos tipos ligados; sem "planilha lida", por causa da decisão de não ler o Excel; 202 testes do
-servidor + 555 da tela + 22 E2E).** Adiadas de propósito: T7 e T9;
+servidor + 555 da tela + 22 E2E).** **Release e Retro, pontas fechadas (04/10/2026):** INC aberto depois do GO reavalia,
+"abrir teste" nos critérios e pendências clicáveis, e aviso de ações pendentes de retros anteriores ao abrir um plano
+(`AcoesPendentesAnteriores`, com "abrir retro"). Adiadas de propósito: T7 e T9;
 a T11 traz os cenários de exemplo (hoje a lista nasce vazia).
 Use o PowerShell para `npm install`/`npm test`/`npm run dev`.
 **Escopo atual (decisão do usuário, 02/10/2026): SEM EXECUÇÃO.** Por enquanto a ferramenta só **planeja e

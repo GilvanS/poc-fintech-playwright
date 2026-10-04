@@ -28,6 +28,7 @@ import LimitesWipModal from './LimitesWipModal.tsx';
 import ListaTestes from './ListaTestes.tsx';
 import OrdemModal from './OrdemModal.tsx';
 import TesteModal from './TesteModal.tsx';
+import AcoesPendentesAnteriores from '../retro/AcoesPendentesAnteriores.tsx';
 
 interface Props {
   id: string;
@@ -43,6 +44,8 @@ interface Props {
   filtrosIniciais?: Filtros;
   /** Abre já no detalhe deste teste (vindo do Roadmap, por exemplo). */
   testeInicial?: string;
+  /** "abrir retro" do aviso de ações pendentes de retros anteriores; sem isto o aviso só informa. */
+  onAbrirRetro?: (planoId: string) => void;
 }
 
 type Confirmacao = { tipo: 'teste'; idCenario: string } | { tipo: 'lote'; idCenarios: string[] } | { tipo: 'plano' };
@@ -61,7 +64,7 @@ function mensagemDe(erro: unknown): string {
  * Modal "Detalhe do plano" (M3): filtros, Visão lista e Visão card (kanban) sobre os mesmos testes,
  * mais o botão de ordem de execução. Tudo é planejamento: nada é executado.
  */
-export default function PlanoDetalhe({ id, onFechar, onMudou, hoje, modo = 'modal', visaoInicial = 'lista', filtrosIniciais = SEM_FILTROS, testeInicial }: Props) {
+export default function PlanoDetalhe({ id, onFechar, onMudou, hoje, modo = 'modal', visaoInicial = 'lista', filtrosIniciais = SEM_FILTROS, testeInicial, onAbrirRetro }: Props) {
   const ehPagina = modo === 'pagina';
   const [visao, setVisao] = useState<Visao>(visaoInicial);
   const [filtros, setFiltros] = useState<Filtros>(filtrosIniciais);
@@ -272,6 +275,8 @@ export default function PlanoDetalhe({ id, onFechar, onMudou, hoje, modo = 'moda
             {erro}
           </p>
         )}
+
+        {dados && <AcoesPendentesAnteriores planoId={id} hoje={hoje} onAbrirRetro={onAbrirRetro} />}
 
         {dados && (
           <>

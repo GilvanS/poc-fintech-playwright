@@ -142,6 +142,12 @@ function Logado({ fundo, onFundo }: PropsLogado) {
     else selecionar('incidentes');
   };
 
+  /** "abrir retro" do aviso de ações pendentes de retros anteriores: escolhe aquele plano e abre a Retro. */
+  const abrirRetro = (idPlano: string) => {
+    escolherPlano(idPlano);
+    selecionar('retro');
+  };
+
   const fecharCriar = useCallback(() => setCriandoVisao(false), []);
   const irParaPlanos = () => setAtivo('planos');
   const idVisao = idDaVisao(ativo);
@@ -164,6 +170,7 @@ function Logado({ fundo, onFundo }: PropsLogado) {
             tipo={visaoAtiva.tipo}
             plano={planoAtivo}
             filtrosIniciais={filtrosDaVisao(visaoAtiva.filtros)}
+            onAbrirRetro={abrirRetro}
             chaveReinicio={ativo}
             acoes={
               <button
@@ -192,6 +199,7 @@ function Logado({ fundo, onFundo }: PropsLogado) {
           plano={planoAtivo}
           filtrosIniciais={chave === 'lista' ? filtroLista?.filtros : undefined}
           testeInicial={chave === 'lista' ? filtroLista?.teste : undefined}
+          onAbrirRetro={abrirRetro}
           chaveReinicio={chave === 'lista' ? `lista:${filtroLista?.n ?? 0}` : chave}
           onIrParaPlanos={irParaPlanos}
           onMudou={() => void recarregarPlanos()}
