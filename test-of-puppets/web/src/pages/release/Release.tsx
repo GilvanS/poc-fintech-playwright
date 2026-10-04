@@ -29,6 +29,8 @@ interface Props {
   hoje?: string;
   /** Abre a tela de Incidentes (o "abrir INC" de um critério). */
   onAbrirIncidentes: () => void;
+  /** Abre o teste na Lista (o "abrir teste" de um critério e a pendência de um teste). */
+  onAbrirTeste: (idCenario: string) => void;
   onIrParaPlanos: () => void;
 }
 
@@ -63,7 +65,7 @@ function LinhaProntidao({ p, texto }: { p: Prontidao; texto: string }) {
  * Release (V4): mostra se o plano está pronto para liberar. Os 7 critérios saem dos dados (nada se marca à mão);
  * só a decisão final é humana e fica registrada no plano, com autor e justificativa (M15).
  */
-export default function Release({ planoId, hoje: hojeProp, onAbrirIncidentes, onIrParaPlanos }: Props) {
+export default function Release({ planoId, hoje: hojeProp, onAbrirIncidentes, onAbrirTeste, onIrParaPlanos }: Props) {
   const hoje = hojeProp ?? hojeISO();
   const { rotulo, icone: Icone } = itemPorChave('release');
   const { nome, ativas, voce } = usePessoas();
@@ -100,7 +102,7 @@ export default function Release({ planoId, hoje: hojeProp, onAbrirIncidentes, on
   const pendentes = naoAtendidos(criterios);
   const ok = cumpridos(criterios);
   const percentual = Math.round((ok / TOTAL_CRITERIOS) * 100);
-  const estado = useMemo(() => estadoDaDecisao(dados?.plano.decisoes, entrada.itens), [dados, entrada.itens]);
+  const estado = useMemo(() => estadoDaDecisao(dados?.plano.decisoes, entrada.itens, incidentes), [dados, entrada.itens, incidentes]);
   const pendencias = useMemo(() => montarPendencias(entrada, criterios), [entrada, criterios]);
   const historico = useMemo(() => [...(dados?.plano.decisoes ?? [])].reverse(), [dados]);
   const situacao = estado.reavaliar ? 'REAVALIAR' : ok === TOTAL_CRITERIOS ? 'GO' : 'NO-GO';
@@ -176,7 +178,12 @@ export default function Release({ planoId, hoje: hojeProp, onAbrirIncidentes, on
             )}
             {estado.reavaliar && estado.ultima && (
               <p role="status" data-testid="aviso-reavaliar" className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
-                {`${nome(estado.ultima.por)} decidiu ${ROTULO_DECISAO[estado.ultima.decisao]} em ${formatarData(estado.ultima.em)}, mas ${estado.mudaramDepois.join(', ')} mudou depois. Reavalie e registre uma nova decisão.`}
+                {`${nome(estado.ultima.por)} decidiu ${ROTULO_DECISAO[estado.ultima.decisao]} em ${formatarData(estado.ultima.em)}, mas ${[
+                  estado.mudaramDepois.length > 0 ? `${estado.mudaramDepois.join(', ')} mudou` : '',
+                  estado.incDepois.length > 0 ? `${estado.incDepois.join(', ')} foi aberto` : '',
+                ]
+                  .filter(Boolean)
+                  .join(' e ')} depois. Reavalie e registre uma nova decisão.`}
               </p>
             )}
 
@@ -234,6 +241,11 @@ export default function Release({ planoId, hoje: hojeProp, onAbrirIncidentes, on
                                 {c.detalhes.map((d) => (
                                   <li key={d.texto} className="flex flex-wrap items-center gap-3">
                                     <span>{d.texto}</span>
+                                    {d.idCenario && (
+                                      <button type="button" onClick={() => onAbrirTeste(d.idCenario as string)} aria-label={`Abrir o teste ${d.idCenario}`} className="font-bold text-volt-green hover:underline cursor-pointer">
+                                        abrir teste
+                                      </button>
+                                    )}
                                     {d.numeroInc && (
                                       <button type="button" onClick={onAbrirIncidentes} aria-label={`Abrir o INC ${d.numeroInc}`} className="font-bold text-volt-green hover:underline cursor-pointer">
                                         abrir INC
@@ -279,7 +291,18 @@ export default function Release({ planoId, hoje: hojeProp, onAbrirIncidentes, on
                 <ol data-testid="pendencias" className="flex flex-col gap-1 text-xs">
                   {visiveis.map((p, i) => (
                     <li key={p.chave} className="flex flex-wrap gap-x-2">
-                      <span className="font-black">{`${i + 1}. ${p.ref} ${p.etiqueta}`}</span>
+                      {p.tipo === 'plano' ? (
+                        <span className="font-black">{`${i + 1}. ${p.ref} ${p.etiqueta}`}</span>
+                      ) : (
+                        <button
+                          type="button"
+                          aria-label={`Abrir pendência: ${p.ref}`}
+                          onClick={() => (p.tipo === 'teste' ? onAbrirTeste(p.ref) : onAbrirIncidentes())}
+                          className="font-black text-left hover:text-volt-green hover:underline cursor-pointer"
+                        >
+                          {`${i + 1}. ${p.ref} ${p.etiqueta}`}
+                        </button>
+                      )}
                       <span className="font-bold">{p.quem}</span>
                       <span className="text-on-surface-variant">{p.acao}</span>
                     </li>

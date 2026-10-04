@@ -160,9 +160,30 @@ describe('estadoDaDecisao', () => {
   const decisao = (d: Partial<Decisao>): Decisao => ({ id: 'dc_1', decisao: 'go', justificativa: 'ok', por: 'ana', em: '2026-10-02T14:05:00.000Z', criterios: [], ...d });
 
   it('sem decisão ou com NO-GO: nem liberado nem a reavaliar', () => {
-    expect(estadoDaDecisao(undefined, itensMaster())).toEqual({ liberado: false, reavaliar: false, mudaramDepois: [] });
+    expect(estadoDaDecisao(undefined, itensMaster())).toEqual({ liberado: false, reavaliar: false, mudaramDepois: [], incDepois: [] });
     const no = decisao({ decisao: 'no_go' });
-    expect(estadoDaDecisao([no], itensMaster())).toEqual({ ultima: no, liberado: false, reavaliar: false, mudaramDepois: [] });
+    expect(estadoDaDecisao([no], itensMaster())).toEqual({ ultima: no, liberado: false, reavaliar: false, mudaramDepois: [], incDepois: [] });
+  });
+
+  it('INC aberto depois do GO (e ainda aberto, e deste plano) volta para "reavaliar"; os outros não contam', () => {
+    const go = decisao({});
+    const itens = [item('CT01.1'), item('CT01.2')];
+    const depois = { abertoEm: '2026-10-03T08:00:00.000Z' };
+    const incs = [
+      inc('INC9', { ...depois, testesAfetados: ['CT01.2'] }),
+      inc('INC8', { ...depois, status: 'resolvido', testesAfetados: ['CT01.1'] }),
+      inc('INC7', { ...depois, testesAfetados: ['CT99.9'] }),
+      inc('INC6', { abertoEm: '2026-10-01T08:00:00.000Z', testesAfetados: ['CT01.1'] }),
+    ];
+    expect(estadoDaDecisao([go], itens, incs)).toMatchObject({ liberado: false, reavaliar: true, mudaramDepois: [], incDepois: ['INC9'] });
+    expect(estadoDaDecisao([go], itens, incs.slice(1))).toMatchObject({ liberado: true, reavaliar: false, incDepois: [] });
+  });
+
+  it('teste mudado e INC novo juntos: os dois entram', () => {
+    const go = decisao({ decisao: 'go_excecao', criterios: [3] });
+    const itens = [item('CT01.1', { atualizadoEm: '2026-10-03T07:00:00.000Z' })];
+    const incs = [inc('INC9', { abertoEm: '2026-10-03T08:00:00.000Z', testesAfetados: ['CT01.1'] })];
+    expect(estadoDaDecisao([go], itens, incs)).toMatchObject({ reavaliar: true, mudaramDepois: ['CT01.1'], incDepois: ['INC9'] });
   });
 
   it('GO continua valendo enquanto nenhum teste mudar depois', () => {

@@ -74,16 +74,23 @@ async function abrir(
   const api = criarApiFalsa({ planos: opcoes.planos ?? [planoMaster()], pessoas: equipe, incidentes: opcoes.incidentes ?? incidentes() });
   vi.stubGlobal('fetch', api.falso);
   const onAbrirIncidentes = vi.fn();
+  const onAbrirTeste = vi.fn();
   const onIrParaPlanos = vi.fn();
   renderComPessoas(
     <IncidentesProvider>
-      <Release planoId={opcoes.planoId === undefined ? 'pl_master' : opcoes.planoId} hoje={HOJE} onAbrirIncidentes={onAbrirIncidentes} onIrParaPlanos={onIrParaPlanos} />
+      <Release
+        planoId={opcoes.planoId === undefined ? 'pl_master' : opcoes.planoId}
+        hoje={HOJE}
+        onAbrirIncidentes={onAbrirIncidentes}
+        onAbrirTeste={onAbrirTeste}
+        onIrParaPlanos={onIrParaPlanos}
+      />
     </IncidentesProvider>,
     equipe,
     opcoes.voce === undefined ? 'ana' : opcoes.voce || undefined,
   );
   if (opcoes.planoId !== null) await screen.findByTestId('criterio-1');
-  return { api, onAbrirIncidentes, onIrParaPlanos };
+  return { api, onAbrirIncidentes, onAbrirTeste, onIrParaPlanos };
 }
 
 const linha = (n: number) => screen.getByTestId(`criterio-${n}`);
@@ -125,6 +132,41 @@ describe('Release — critérios', () => {
     expect(onAbrirIncidentes).toHaveBeenCalledTimes(1);
     await userEvent.click(screen.getByRole('button', { name: 'Ocultar critério 3' }));
     expect(screen.queryByText(/INC0715799001 · Média/)).toBeNull();
+  });
+
+  it('"abrir teste" em cada item do critério leva o teste para a Lista', async () => {
+    const { onAbrirTeste } = await abrir();
+    await userEvent.click(screen.getByRole('button', { name: 'Ver critério 4' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir o teste CT04.1' }));
+    expect(onAbrirTeste).toHaveBeenLastCalledWith('CT04.1');
+    await userEvent.click(screen.getByRole('button', { name: 'Ver critério 5' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir o teste CT03.7' }));
+    expect(onAbrirTeste).toHaveBeenLastCalledWith('CT03.7');
+  });
+
+  it('critério sem teste (prazo) não tem "abrir teste"', async () => {
+    const { onAbrirTeste } = await abrir({ planos: [plano('pl_sem_prazo', '05/10/26', [item('CT01.1', { responsavel: 'ana', estimativaMin: 5 })])], planoId: 'pl_sem_prazo' });
+    await userEvent.click(screen.getByRole('button', { name: 'Ver critério 7' }));
+    expect(screen.getByText('O plano não tem previsão: defina uma para medir o prazo')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Abrir o teste/ })).toBeNull();
+    expect(onAbrirTeste).not.toHaveBeenCalled();
+  });
+
+  it('cada pendência é clicável: o teste abre na Lista e o INC leva para Incidentes', async () => {
+    const { onAbrirTeste, onAbrirIncidentes } = await abrir();
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir pendência: CT03.2' }));
+    expect(onAbrirTeste).toHaveBeenLastCalledWith('CT03.2');
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir pendência: INC0715802225' }));
+    expect(onAbrirIncidentes).toHaveBeenCalledTimes(1);
+    expect(onAbrirTeste).toHaveBeenCalledTimes(1);
+  });
+
+  it('a pendência do plano (prazo) não é botão', async () => {
+    await abrir({ planos: [plano('pl_sem_prazo', '05/10/26', [item('CT01.1')])], planoId: 'pl_sem_prazo', incidentes: [] });
+    const lista = within(screen.getByTestId('pendencias')).getAllByRole('listitem');
+    const doPlano = lista.find((l) => l.textContent?.includes('definir a previsão do plano'));
+    expect(doPlano).toBeTruthy();
+    expect(within(doPlano as HTMLElement).queryByRole('button')).toBeNull();
   });
 
   it('prontidão por prioridade e por pessoa', async () => {
@@ -275,7 +317,7 @@ describe('Release — decisão (M15)', () => {
     );
     renderComPessoas(
       <IncidentesProvider>
-        <Release planoId="pl_master" hoje={HOJE} onAbrirIncidentes={vi.fn()} onIrParaPlanos={vi.fn()} />
+        <Release planoId="pl_master" hoje={HOJE} onAbrirIncidentes={vi.fn()} onAbrirTeste={vi.fn()} onIrParaPlanos={vi.fn()} />
       </IncidentesProvider>,
       equipe,
       'ana',
@@ -305,6 +347,32 @@ describe('Release — depois do GO', () => {
     expect(screen.queryByTestId('selo-liberado')).toBeNull();
   });
 
+  it('INC aberto depois do GO também volta a situação para REAVALIAR e diz qual INC', async () => {
+    const depois = inc('INC0000009', { severidade: 'alta', abertoEm: '2026-10-03T09:00:00.000Z', testesAfetados: ['CT01.1'] });
+    await abrir({ planos: [planoPronto([go])], planoId: 'pl_pronto', incidentes: [depois] });
+    expect(screen.getByTestId('situacao')).toHaveTextContent('Situação: REAVALIAR');
+    expect(screen.getByTestId('aviso-reavaliar')).toHaveTextContent('Bia decidiu GO em 02/10/2026, mas INC0000009 foi aberto depois. Reavalie e registre uma nova decisão.');
+    expect(screen.queryByTestId('selo-liberado')).toBeNull();
+  });
+
+  it('INC aberto antes do GO, resolvido ou de outro plano não muda o GO', async () => {
+    const incs = [
+      inc('INC0000001', { abertoEm: '2026-10-01T09:00:00.000Z', testesAfetados: ['CT01.1'] }), // antes do GO
+      inc('INC0000002', { abertoEm: '2026-10-03T09:00:00.000Z', status: 'resolvido', testesAfetados: ['CT01.1'] }), // já resolvido
+      inc('INC0000003', { abertoEm: '2026-10-03T09:00:00.000Z', testesAfetados: ['CT99.9'] }), // não é deste plano
+    ];
+    await abrir({ planos: [planoPronto([go])], planoId: 'pl_pronto', incidentes: incs });
+    // O INC1 (antes do GO) ainda reprova o critério 3, mas não "invalida" a decisão já tomada.
+    expect(screen.getByTestId('situacao')).not.toHaveTextContent('REAVALIAR');
+    expect(screen.queryByTestId('aviso-reavaliar')).toBeNull();
+  });
+
+  it('teste alterado e INC novo depois do GO aparecem juntos no aviso', async () => {
+    const depois = inc('INC0000009', { abertoEm: '2026-10-03T09:00:00.000Z', testesAfetados: ['CT01.2'] });
+    await abrir({ planos: [planoPronto([go], '2026-10-02T15:00:00.000Z')], planoId: 'pl_pronto', incidentes: [depois] });
+    expect(screen.getByTestId('aviso-reavaliar')).toHaveTextContent('mas CT01.1 mudou e INC0000009 foi aberto depois.');
+  });
+
   it('o histórico mostra a mais nova primeiro', async () => {
     const antigo: Decisao = { id: 'dc_0', decisao: 'no_go', justificativa: 'Faltou o P1.', por: 'ana', em: '2026-10-01T10:00:00.000Z', criterios: [4] };
     await abrir({ planos: [planoPronto([antigo, go])], planoId: 'pl_pronto', incidentes: [] });
@@ -331,5 +399,36 @@ describe('Release — dentro do app', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Ver critério 3' }));
     await userEvent.click(screen.getByRole('button', { name: 'Abrir o INC INC0715802225' }));
     expect(await screen.findByRole('heading', { level: 2, name: 'Incidentes' })).toBeInTheDocument();
+  });
+
+  it('"abrir teste" de um critério leva para a Lista com o detalhe daquele teste já aberto; o menu "Lista" volta a mostrar só a lista', async () => {
+    const api = criarApiFalsa({ planos: [planoMaster()], pessoas: equipe, incidentes: incidentes() });
+    vi.stubGlobal('fetch', api.falso);
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+    const menu = screen.getByRole('complementary', { name: 'Navegação' });
+    await userEvent.click(within(menu).getByRole('button', { name: /^Release/ }));
+    await screen.findByTestId('criterio-4');
+    await userEvent.click(screen.getByRole('button', { name: 'Ver critério 4' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir o teste CT04.1' }));
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Lista' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Detalhe do teste' })).toHaveTextContent('CT04.1');
+
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(within(menu).getByRole('button', { name: 'Kanban' }));
+    await userEvent.click(within(menu).getByRole('button', { name: 'Lista' }));
+    await screen.findByRole('heading', { level: 3, name: 'Plano: 28/09/26' });
+    expect(screen.queryByRole('dialog', { name: 'Detalhe do teste' })).toBeNull();
+  });
+
+  it('uma pendência de teste também abre o detalhe na Lista', async () => {
+    const api = criarApiFalsa({ planos: [planoMaster()], pessoas: equipe, incidentes: incidentes() });
+    vi.stubGlobal('fetch', api.falso);
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+    await userEvent.click(within(screen.getByRole('complementary', { name: 'Navegação' })).getByRole('button', { name: /^Release/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Abrir pendência: CT03.2' }));
+    expect(await screen.findByRole('dialog', { name: 'Detalhe do teste' })).toHaveTextContent('CT03.2');
   });
 });

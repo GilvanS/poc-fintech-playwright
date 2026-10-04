@@ -8,7 +8,7 @@ import Equipe from './pages/equipe/Equipe.tsx';
 import Iteracoes from './pages/iteracoes/Iteracoes.tsx';
 import Lancamento from './pages/lancamento/Lancamento.tsx';
 import Planejamento from './pages/planejamento/Planejamento.tsx';
-import type { Filtros } from './pages/planos/filtros.ts';
+import { SEM_FILTROS, type Filtros } from './pages/planos/filtros.ts';
 import { listarPlanos, type PlanoResumido } from './pages/planos/clientePlanos.ts';
 import PlanoPagina from './pages/planos/PlanoPagina.tsx';
 import Planos from './pages/planos/Planos.tsx';
@@ -65,7 +65,8 @@ function Logado({ fundo, onFundo }: PropsLogado) {
   const [criandoVisao, setCriandoVisao] = useState(false);
   const [erroVisao, setErroVisao] = useState<string | null>(null);
   // Filtros com que a Lista foi aberta a partir do Lançamento; `n` faz a Lista recomeçar a cada clique.
-  const [filtroLista, setFiltroLista] = useState<{ filtros: Filtros; n: number } | null>(null);
+  // `teste`: a Lista abre já com o detalhe desse teste (vem do Release).
+  const [filtroLista, setFiltroLista] = useState<{ filtros: Filtros; n: number; teste?: string } | null>(null);
 
   const recarregarPlanos = useCallback(async () => {
     try {
@@ -190,6 +191,7 @@ function Logado({ fundo, onFundo }: PropsLogado) {
           tipo={chave}
           plano={planoAtivo}
           filtrosIniciais={chave === 'lista' ? filtroLista?.filtros : undefined}
+          testeInicial={chave === 'lista' ? filtroLista?.teste : undefined}
           chaveReinicio={chave === 'lista' ? `lista:${filtroLista?.n ?? 0}` : chave}
           onIrParaPlanos={irParaPlanos}
           onMudou={() => void recarregarPlanos()}
@@ -211,7 +213,19 @@ function Logado({ fundo, onFundo }: PropsLogado) {
         />
       );
     }
-    if (chave === 'release') return <Release planoId={planoAtivo?.id ?? null} onAbrirIncidentes={() => setAtivo('incidentes')} onIrParaPlanos={irParaPlanos} />;
+    if (chave === 'release') {
+      return (
+        <Release
+          planoId={planoAtivo?.id ?? null}
+          onAbrirIncidentes={() => setAtivo('incidentes')}
+          onAbrirTeste={(idCenario) => {
+            setFiltroLista((atual) => ({ filtros: SEM_FILTROS, n: (atual?.n ?? 0) + 1, teste: idCenario }));
+            setAtivo('lista');
+          }}
+          onIrParaPlanos={irParaPlanos}
+        />
+      );
+    }
     if (chave === 'retro') return <Retro planoId={planoAtivo?.id ?? null} onIrParaPlanos={irParaPlanos} />;
     if (chave === 'configuracoes') return <Configuracoes />;
     if (chave === 'incidentes') return <Incidentes />;

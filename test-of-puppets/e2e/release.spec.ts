@@ -29,6 +29,19 @@ test('Release: critérios, decisão com exceção gravada no servidor e "Reavali
   await page.getByRole('button', { name: 'Ver critério 3' }).click();
   await expect(page.getByText(/^INC0715802225 · Alta · Em análise/)).toBeVisible();
 
+  // "abrir teste" de um critério leva à Lista com o detalhe daquele teste; a pendência também.
+  await page.getByRole('button', { name: 'Ver critério 1' }).click();
+  await page.getByRole('button', { name: /^Abrir o teste CT/ }).first().click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Lista' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Detalhe do teste' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await irPara(page, 'Release');
+  await page.getByRole('button', { name: /^Abrir pendência: CT/ }).first().click();
+  await expect(page.getByRole('dialog', { name: 'Detalhe do teste' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await irPara(page, 'Release');
+  await expect(page.getByRole('heading', { level: 3, name: 'Release do plano 28/09/26' })).toBeVisible();
+
   // GO está bloqueado com critério pendente; NO-GO sem justificativa é recusado.
   await page.getByRole('button', { name: 'Registrar decisão GO/NO-GO' }).click();
   const modal = page.getByRole('dialog', { name: 'Decisão do release — Plano 28/09/26' });
@@ -55,13 +68,21 @@ test('Release: critérios, decisão com exceção gravada no servidor e "Reavali
   await irPara(page, 'Release');
   await expect(page.getByTestId('historico-decisoes')).toContainText('Risco aceito: o INC é de baixo impacto.');
 
-  // Um teste muda depois do GO: volta para "Reavaliar" e avisa quem decidiu.
+  // Um INC novo que afeta o plano, aberto depois do GO, também volta para "Reavaliar".
   const alvo = (await plano()).itens[0];
+  const inc = await request.post(`${URL_API}/api/incidentes`, { data: { numero: 'INC0900009', titulo: 'Novo depois do GO', testesAfetados: [alvo.idCenario], autor: 'ana' } });
+  expect(inc.ok()).toBeTruthy();
+  await page.getByRole('button', { name: 'Atualizar' }).click();
+  await expect(page.getByTestId('situacao')).toContainText('Situação: REAVALIAR');
+  await expect(page.getByTestId('aviso-reavaliar')).toContainText('INC0900009 foi aberto depois');
+  await expect(page.getByTestId('aviso-reavaliar')).not.toContainText('mudou');
+
+  // E um teste que muda depois do GO também: os dois entram no aviso, para quem decidiu.
   const patch = await request.patch(`${URL_API}/api/planos/${idPlano}/testes/${alvo.idCenario}`, { data: { versao: alvo.versao, observacoes: 'Mudou depois do GO.' } });
   expect(patch.ok()).toBeTruthy();
   await page.getByRole('button', { name: 'Atualizar' }).click();
   await expect(page.getByTestId('situacao')).toContainText('Situação: REAVALIAR');
   await expect(page.getByTestId('aviso-reavaliar')).toContainText('Ana decidiu GO com exceção');
-  await expect(page.getByTestId('aviso-reavaliar')).toContainText(`${alvo.idCenario} mudou depois`);
+  await expect(page.getByTestId('aviso-reavaliar')).toContainText(`${alvo.idCenario} mudou e INC0900009 foi aberto depois`);
   await expect(page.getByTestId('selo-liberado')).toHaveCount(0);
 });

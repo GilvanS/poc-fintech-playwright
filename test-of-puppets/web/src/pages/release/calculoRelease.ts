@@ -166,14 +166,23 @@ export interface EstadoDecisao {
   reavaliar: boolean;
   /** Os testes que mudaram depois do GO. */
   mudaramDepois: string[];
+  /** Os INC abertos depois do GO que ainda afetam o plano. */
+  incDepois: string[];
 }
 
-/** "Alterar um teste depois do GO volta a situação para Reavaliar e avisa quem decidiu." */
-export function estadoDaDecisao(decisoes: Decisao[] | undefined, itens: ItemPlano[]): EstadoDecisao {
+/**
+ * "Alterar um teste depois do GO volta a situação para Reavaliar e avisa quem decidiu." Um INC aberto depois do GO,
+ * que afeta um teste do plano e ainda não foi resolvido, faz o mesmo.
+ */
+export function estadoDaDecisao(decisoes: Decisao[] | undefined, itens: ItemPlano[], incidentes: Incidente[] = []): EstadoDecisao {
   const ultima = decisoes && decisoes.length > 0 ? decisoes[decisoes.length - 1] : undefined;
-  if (!ultima || ultima.decisao === 'no_go') return { ...(ultima ? { ultima } : {}), liberado: false, reavaliar: false, mudaramDepois: [] };
+  if (!ultima || ultima.decisao === 'no_go') {
+    return { ...(ultima ? { ultima } : {}), liberado: false, reavaliar: false, mudaramDepois: [], incDepois: [] };
+  }
   const mudaramDepois = itens.filter((i) => i.atualizadoEm !== undefined && i.atualizadoEm > ultima.em).map((i) => i.idCenario);
-  return { ultima, liberado: mudaramDepois.length === 0, reavaliar: mudaramDepois.length > 0, mudaramDepois };
+  const incDepois = incidentesAbertosDoPlano(itens, incidentes).filter((inc) => inc.abertoEm > ultima.em).map((inc) => inc.numero);
+  const reavaliar = mudaramDepois.length > 0 || incDepois.length > 0;
+  return { ultima, liberado: !reavaliar, reavaliar, mudaramDepois, incDepois };
 }
 
 export interface Prontidao {
