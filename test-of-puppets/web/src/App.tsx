@@ -3,6 +3,7 @@ import GridRevealBackdrop from './shared/GridRevealBackdrop.tsx';
 import Entrada from './pages/Entrada.tsx';
 import Secao from './pages/Secao.tsx';
 import Cenarios from './pages/cenarios/Cenarios.tsx';
+import Configuracoes from './pages/configuracoes/Configuracoes.tsx';
 import Equipe from './pages/equipe/Equipe.tsx';
 import Iteracoes from './pages/iteracoes/Iteracoes.tsx';
 import Lancamento from './pages/lancamento/Lancamento.tsx';
@@ -212,6 +213,7 @@ function Logado({ fundo, onFundo }: PropsLogado) {
     }
     if (chave === 'release') return <Release planoId={planoAtivo?.id ?? null} onAbrirIncidentes={() => setAtivo('incidentes')} onIrParaPlanos={irParaPlanos} />;
     if (chave === 'retro') return <Retro planoId={planoAtivo?.id ?? null} onIrParaPlanos={irParaPlanos} />;
+    if (chave === 'configuracoes') return <Configuracoes />;
     if (chave === 'incidentes') return <Incidentes />;
     if (chave === 'cenarios') return <Cenarios />;
     if (chave === 'equipe') return <Equipe />;

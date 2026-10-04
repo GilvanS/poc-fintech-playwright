@@ -210,6 +210,29 @@ test('valida hoje, chaves e lida', async () => {
   }
 });
 
+test('tipo desligado em /api/config some do sino e do contador; marcar enquanto desligado não grava nada; religar traz de volta', async () => {
+  const s = await iniciar();
+  try {
+    await cenarios(s, ['CT01.1']);
+    const id = await plano(s, 'Vencido', ['CT01.1'], { previsao: '2026-10-01' });
+    await alterar(s, id, 'CT01.1', { dataPlanejada: HOJE });
+    await s.json('POST', '/api/incidentes', { numero: 'INC0000001', titulo: 'Um', testesAfetados: ['CT01.1'] });
+    assert.deepEqual((await s.lembretes()).lembretes.map((l: Json) => l.tipo), ['teste_hoje', 'plano_vencido', 'inc_aberto']);
+
+    await s.json('PUT', '/api/config', { lembretes: { inc_aberto: false, plano_vencido: false } });
+    const filtrado = await s.lembretes();
+    assert.deepEqual(filtrado.lembretes.map((l: Json) => l.tipo), ['teste_hoje']);
+    assert.equal(filtrado.naoLidas, 1);
+
+    // Marcar um tipo desligado não grava nada (a chave nem existe na lista).
+    await s.json('POST', '/api/lembretes/lidas', { hoje: HOJE, chaves: ['inc-aberto:INC0000001'] });
+    await s.json('PUT', '/api/config', { lembretes: { inc_aberto: true, plano_vencido: true } });
+    assert.equal((await s.lembretes()).naoLidas, 3);
+  } finally {
+    await s.fechar();
+  }
+});
+
 test('sem o parâmetro hoje usa o dia do servidor', async () => {
   const s = await iniciar();
   try {

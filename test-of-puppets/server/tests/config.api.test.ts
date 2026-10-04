@@ -26,11 +26,12 @@ async function iniciar() {
 }
 
 const PADRAO = { agendado: null, em_andamento: 3, refinamento: 3, concluido: null };
+const LIGADOS = { teste_hoje: true, plano_vencido: true, inc_aberto: true, acao_retro: true };
 
 test('GET /api/config sem arquivo devolve o padrão: Em andamento 3, Refinamento 3, o resto sem limite', async () => {
   const s = await iniciar();
   try {
-    assert.deepEqual(await s.json('GET', '/api/config'), { status: 200, corpo: { wip: PADRAO } });
+    assert.deepEqual(await s.json('GET', '/api/config'), { status: 200, corpo: { wip: PADRAO, lembretes: LIGADOS } });
   } finally {
     await s.fechar();
   }
@@ -71,6 +72,56 @@ test('PUT inválido é 400 com todas as mensagens e não grava nada', async () =
     assert.equal((await s.json('PUT', '/api/config', {})).status, 400);
     assert.equal((await s.json('PUT', '/api/config', { wip: {} })).status, 400);
     assert.deepEqual((await s.json('GET', '/api/config')).corpo.wip, PADRAO);
+  } finally {
+    await s.fechar();
+  }
+});
+
+test('PUT lembretes desliga só os tipos informados, devolve tudo, grava e não mexe no WIP', async () => {
+  const s = await iniciar();
+  try {
+    const r = await s.json('PUT', '/api/config', { lembretes: { inc_aberto: false, acao_retro: false } });
+    assert.equal(r.status, 200);
+    assert.deepEqual(r.corpo.lembretes, { teste_hoje: true, plano_vencido: true, inc_aberto: false, acao_retro: false });
+    assert.deepEqual(r.corpo.wip, PADRAO);
+    const arquivo = JSON.parse(await readFile(join(s.dir, 'config.json'), 'utf8')) as Json;
+    assert.equal(arquivo.lembretes.inc_aberto, false);
+
+    // Liga um de volta; o outro continua desligado.
+    const volta = await s.json('PUT', '/api/config', { lembretes: { inc_aberto: true } });
+    assert.deepEqual(volta.corpo.lembretes, { teste_hoje: true, plano_vencido: true, inc_aberto: true, acao_retro: false });
+  } finally {
+    await s.fechar();
+  }
+});
+
+test('PUT com wip e lembretes juntos grava os dois; mexer num não apaga o outro', async () => {
+  const s = await iniciar();
+  try {
+    const r = await s.json('PUT', '/api/config', { wip: { em_andamento: 5 }, lembretes: { plano_vencido: false } });
+    assert.equal(r.corpo.wip.em_andamento, 5);
+    assert.equal(r.corpo.lembretes.plano_vencido, false);
+    const so = await s.json('PUT', '/api/config', { wip: { refinamento: 2 } });
+    assert.equal(so.corpo.lembretes.plano_vencido, false);
+    assert.equal(so.corpo.wip.em_andamento, 5);
+  } finally {
+    await s.fechar();
+  }
+});
+
+test('PUT lembretes inválido é 400 com as mensagens e não grava nada', async () => {
+  const s = await iniciar();
+  try {
+    const ruim = await s.json('PUT', '/api/config', { lembretes: { inc_aberto: 'nao', fila: true } });
+    assert.equal(ruim.status, 400);
+    assert.equal(ruim.corpo.erro, 'validacao');
+    assert.match(ruim.corpo.mensagens.join(' | '), /Tipo de lembrete desconhecido: fila/);
+    assert.match(ruim.corpo.mensagens.join(' | '), /INC aberto deve ser ligado \(true\) ou desligado \(false\)/);
+
+    assert.equal((await s.json('PUT', '/api/config', { lembretes: {} })).status, 400);
+    assert.equal((await s.json('PUT', '/api/config', { lembretes: 'todos' })).status, 400);
+    assert.equal((await s.json('PUT', '/api/config', { lembretes: { inc_aberto: false }, wip: { em_andamento: 0 } })).status, 400);
+    assert.deepEqual((await s.json('GET', '/api/config')).corpo.lembretes, LIGADOS, 'o pedido misto inválido não gravou o lembrete');
   } finally {
     await s.fechar();
   }

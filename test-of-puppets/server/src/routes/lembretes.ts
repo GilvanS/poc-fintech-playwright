@@ -1,4 +1,5 @@
 import { Router, type Response } from 'express';
+import type { RepoConfig } from '../config/repo.ts';
 import type { RepoIncidentes } from '../incidentes/repo.ts';
 import { calcularLembretes, type Lembrete } from '../lembretes/modelo.ts';
 import type { RepoLembretes } from '../lembretes/repo.ts';
@@ -7,6 +8,7 @@ import type { RepoPlanos } from '../planos/repo.ts';
 import type { RepoRetros } from '../retros/repo.ts';
 
 interface Dependencias {
+  config: RepoConfig;
   planos: RepoPlanos;
   incidentes: RepoIncidentes;
   retros: RepoRetros;
@@ -25,13 +27,16 @@ function hojeLocal(agora = new Date()): string {
 const pessoaDe = (v: unknown): string | null => (typeof v === 'string' && v.trim() && v.trim().length <= 40 ? v.trim() : null);
 
 /** /api/lembretes — o sino. Os lembretes saem dos dados na hora; só "lida" fica gravado, por pessoa. */
-export function rotasLembretes({ planos, incidentes, retros, lembretes }: Dependencias): Router {
+export function rotasLembretes({ config, planos, incidentes, retros, lembretes }: Dependencias): Router {
   const rotas = Router();
 
   async function listar(voce: string | null, hoje: string): Promise<{ lembretes: Lembrete[]; naoLidas: number }> {
     const resumidos = await planos.listar();
     const detalhes = await Promise.all(resumidos.map((p) => planos.obter(p.id)));
-    const calculados = calcularLembretes({ hoje, voce, planos: detalhes, incidentes: await incidentes.listar(), retros: await retros.listar() });
+    const ligados = (await config.obter()).lembretes;
+    const calculados = calcularLembretes({ hoje, voce, planos: detalhes, incidentes: await incidentes.listar(), retros: await retros.listar() }).filter(
+      (l) => ligados[l.tipo],
+    );
     const lidas = await lembretes.lidasDe(voce);
     const lista = calculados.map((l) => ({ ...l, lida: lidas.has(l.chave) }));
     return { lembretes: lista, naoLidas: lista.filter((l) => !l.lida).length };

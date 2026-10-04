@@ -3,7 +3,7 @@ import type { CenarioVisao } from '../src/pages/cenarios/clienteApi';
 import type { DetalhePlano, ItemPlano, PlanoResumido, TipoDecisao } from '../src/pages/planos/clientePlanos';
 import type { Pessoa } from '../src/pessoas/clientePessoas';
 import type { Visao } from '../src/visoes/clienteVisoes';
-import { SEM_LIMITES, type Wip } from '../src/config/clienteConfig';
+import { SEM_LIMITES, TODOS_LIGADOS, type Lembretes, type Wip } from '../src/config/clienteConfig';
 import type { Incidente } from '../src/incidentes/clienteIncidentes';
 import type { Retro } from '../src/retros/clienteRetros';
 import type { Lembrete } from '../src/lembretes/clienteLembretes';
@@ -49,6 +49,7 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
   let pessoas = structuredClone(opcoes.pessoas ?? []);
   let visoes = structuredClone(opcoes.visoes ?? []);
   let wip: Wip = { ...SEM_LIMITES, ...opcoes.wip };
+  let lembretesLigados: Lembretes = { ...TODOS_LIGADOS };
   const cenarios = opcoes.cenarios ?? [];
   const chamadas: Chamada[] = [];
   let sequencia = 1;
@@ -97,8 +98,9 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
           return json(400, { erro: 'validacao', mensagens: ['Limite de Em andamento deve ser um inteiro de 1 a 99, ou vazio para não ter limite.'] });
         }
         wip = { ...wip, ...pedido };
+        if (corpo?.lembretes) lembretesLigados = { ...lembretesLigados, ...(corpo.lembretes as Partial<Lembretes>) };
       }
-      return json(200, { wip });
+      return json(200, { wip, lembretes: lembretesLigados });
     }
 
     if (partes[1] === 'lembretes') return rotaLembretes(rota);

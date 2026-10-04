@@ -2,7 +2,8 @@ import type { Incidente } from '../incidentes/modelo.ts';
 import type { DetalhePlano } from '../planos/repo.ts';
 import type { Retro } from '../retros/modelo.ts';
 
-export type TipoLembrete = 'teste_hoje' | 'plano_vencido' | 'inc_aberto' | 'acao_retro';
+export const TIPOS_LEMBRETE = ['teste_hoje', 'plano_vencido', 'inc_aberto', 'acao_retro'] as const;
+export type TipoLembrete = (typeof TIPOS_LEMBRETE)[number];
 
 /** Um lembrete do sino. Calculado na hora a partir dos dados; só o "lida" é guardado (por pessoa). */
 export interface Lembrete {

@@ -835,7 +835,10 @@ decisão GO/NO-GO/GO com exceção (M15) gravada em `decisoes[]` do plano, com "
 melhorar com voto e modo anônimo, sugestões automáticas, ações M14 com responsável, prazo e INC opcional, fechar/reabrir;
 185 testes do servidor + 529 da tela + 20 E2E).** **T13 completa.** **T10 ✔ (sino de lembretes real: teste de hoje, plano
 vencido, INC aberto e ação de retro, "lida" por pessoa em `dados/lembretes.json`; 194 testes do servidor + 547 da tela +
-21 E2E).** Adiadas de propósito: T7 e T9;
+21 E2E).** **Configurações ✔ (04/10/2026: a página deixou de ser provisória — limites de WIP pelo mesmo modal M13 e quais
+tipos de lembrete aparecem no sino, em `dados/config.json`; `PUT /api/config` aceita `wip` e/ou `lembretes` e
+`/api/lembretes` filtra pelos tipos ligados; sem "planilha lida", por causa da decisão de não ler o Excel; 202 testes do
+servidor + 555 da tela + 22 E2E).** Adiadas de propósito: T7 e T9;
 a T11 traz os cenários de exemplo (hoje a lista nasce vazia).
 Use o PowerShell para `npm install`/`npm test`/`npm run dev`.
 **Escopo atual (decisão do usuário, 02/10/2026): SEM EXECUÇÃO.** Por enquanto a ferramenta só **planeja e
