@@ -1,85 +1,19 @@
 import { vi } from 'vitest';
 import type { CenarioVisao } from '../src/pages/cenarios/clienteApi';
-import type { DetalhePlano, ItemPlano, PlanoResumido, ResumoPlano, TipoDecisao } from '../src/pages/planos/clientePlanos';
+import type { DetalhePlano, ItemPlano, PlanoResumido, TipoDecisao } from '../src/pages/planos/clientePlanos';
 import type { Pessoa } from '../src/pessoas/clientePessoas';
 import type { Visao } from '../src/visoes/clienteVisoes';
 import { SEM_LIMITES, type Wip } from '../src/config/clienteConfig';
 import type { Incidente } from '../src/incidentes/clienteIncidentes';
 import type { Retro } from '../src/retros/clienteRetros';
 import type { Lembrete } from '../src/lembretes/clienteLembretes';
+import { CRIADO, item, json, pessoa, resumir, type Chamada, type Rota } from './apiFalsaBase';
+import { criarRotaIncidentes } from './apiFalsaIncidentes';
+import { criarRotaLembretes } from './apiFalsaLembretes';
+import { criarRotaRetros } from './apiFalsaRetros';
 
-export const CRIADO = '2026-09-24T12:00:00.000Z';
-
-export function item(idCenario: string, extra: Partial<ItemPlano> = {}): ItemPlano {
-  return {
-    idCenario,
-    nome: `Nome de ${idCenario}`,
-    funcionalidade: 'Faturas',
-    status: 'agendado',
-    posicao: 1,
-    versao: 1,
-    dependeDe: [],
-    massaCompartilhadaCom: [],
-    bloqueadoPor: [],
-    ...extra,
-  };
-}
-
-export function cenario(idCenario: string, extra: Partial<CenarioVisao> = {}): CenarioVisao {
-  return {
-    idCenario,
-    nome: `Nome de ${idCenario}`,
-    funcionalidade: 'Faturas',
-    versao: 1,
-    criadoEm: CRIADO,
-    atualizadoEm: CRIADO,
-    dependeDe: [],
-    massaCompartilhadaCom: [],
-    ...extra,
-  };
-}
-
-export function pessoa(id: string, extra: Partial<Pessoa> = {}): Pessoa {
-  return {
-    id,
-    nome: id.charAt(0).toUpperCase() + id.slice(1),
-    capacidadeMinSemana: 0,
-    cor: 'azul',
-    ativa: true,
-    versao: 1,
-    criadoEm: CRIADO,
-    atualizadoEm: CRIADO,
-    ...extra,
-  };
-}
-
-export function resumir(itens: ItemPlano[]): ResumoPlano {
-  const porStatus = { agendado: 0, em_andamento: 0, refinamento: 0, concluido: 0 };
-  for (const i of itens) porStatus[i.status] += 1;
-  const total = itens.length;
-  return {
-    total,
-    concluidos: porStatus.concluido,
-    pendentes: total - porStatus.concluido,
-    percentual: total ? Math.round((porStatus.concluido / total) * 100) : 0,
-    porStatus,
-    passou: itens.filter((i) => i.resultado === 'passou').length,
-    falhou: itens.filter((i) => i.resultado === 'falhou').length,
-    executado: total > 0 && porStatus.concluido === total,
-  };
-}
-
-/** Monta um plano completo; as posições seguem a ordem em que os itens foram passados. */
-export function plano(id: string, nome: string, itens: ItemPlano[] = [], extra: Partial<DetalhePlano['plano']> = {}): DetalhePlano {
-  const comPosicao = itens.map((i, p) => ({ ...i, posicao: p + 1 }));
-  return { plano: { id, nome, criadoEm: CRIADO, versao: 1, ...extra }, itens: comPosicao, resumo: resumir(comPosicao) };
-}
-
-export interface Chamada {
-  metodo: string;
-  caminho: string;
-  corpo?: Record<string, unknown>;
-}
+// Os dados de exemplo e os tipos continuam saindo daqui, para os testes importarem tudo de um lugar só.
+export { CRIADO, cenario, item, pessoa, plano, resumir, type Chamada } from './apiFalsaBase';
 
 interface Opcoes {
   planos?: DetalhePlano[];
@@ -109,20 +43,12 @@ interface Opcoes {
   lembretesRecusados?: boolean;
 }
 
-function json(status: number, corpo: unknown) {
-  return new Response(status === 204 ? null : JSON.stringify(corpo), { status, headers: { 'content-type': 'application/json' } });
-}
-
 /** Servidor em memória: responde como a API real nas rotas de planos e cenários. */
 export function criarApiFalsa(opcoes: Opcoes = {}) {
   let planos = structuredClone(opcoes.planos ?? []);
   let pessoas = structuredClone(opcoes.pessoas ?? []);
   let visoes = structuredClone(opcoes.visoes ?? []);
   let wip: Wip = { ...SEM_LIMITES, ...opcoes.wip };
-  let incidentes = structuredClone(opcoes.incidentes ?? []);
-  let retros = structuredClone(opcoes.retros ?? []);
-  const lembretes = structuredClone(opcoes.lembretes ?? []);
-  const lidas = new Set(lembretes.filter((l) => l.lida).map((l) => l.chave));
   const cenarios = opcoes.cenarios ?? [];
   const chamadas: Chamada[] = [];
   let sequencia = 1;
@@ -144,12 +70,17 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
     return pronto;
   };
 
+  const rotaIncidentes = criarRotaIncidentes(opcoes.incidentes ?? []);
+  const rotaRetros = criarRotaRetros(opcoes.retros ?? [], achar, () => sequencia++);
+  const rotaLembretes = criarRotaLembretes(opcoes.lembretes ?? [], opcoes.lembretesRecusados);
+
   const falso = vi.fn(async (entrada: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(entrada), 'http://local');
     const metodo = init?.method ?? 'GET';
     const corpo = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : undefined;
     chamadas.push({ metodo, caminho: url.pathname + url.search, corpo });
     const partes = url.pathname.split('/').filter(Boolean).map(decodeURIComponent); // api, planos, :id, testes|ordem, :cenario
+    const rota: Rota = { partes, metodo, corpo, url };
 
     if (partes[1] === 'semente' && metodo === 'POST') {
       if (opcoes.sementeRecusada) {
@@ -170,176 +101,13 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
       return json(200, { wip });
     }
 
-    if (partes[1] === 'lembretes') {
-      const resposta = () => {
-        const lista = lembretes.map((l) => ({ ...l, lida: lidas.has(l.chave) }));
-        return json(200, { lembretes: lista, naoLidas: lista.filter((l) => !l.lida).length });
-      };
-      if (metodo === 'POST' && partes[2] === 'lidas') {
-        const chaves = (corpo?.chaves as string[] | undefined) ?? [];
-        if (opcoes.lembretesRecusados) return json(500, { erro: 'interno' });
-        for (const c of chaves.filter((x) => lembretes.some((l) => l.chave === x))) {
-          if (corpo?.lida === false) lidas.delete(c);
-          else lidas.add(c);
-        }
-      }
-      return resposta();
-    }
+    if (partes[1] === 'lembretes') return rotaLembretes(rota);
 
-    if (partes[1] === 'retros') {
-      const pid = partes[2];
-      if (!pid) return json(200, { retros });
-      const dono = achar(pid);
-      if (!dono) return json(404, { erro: 'nao_encontrado', mensagem: `Plano ${pid} não encontrado.` });
-      const atual: Retro = retros.find((r) => r.planoId === pid) ?? { planoId: pid, status: 'aberta', anonimas: false, fechadaEm: null, fechadaPor: null, notas: [], acoes: [], atualizadoEm: null };
-      const gravar = (r: Retro) => {
-        const pronta = { ...r, atualizadoEm: new Date().toISOString() };
-        retros = retros.some((x) => x.planoId === pid) ? retros.map((x) => (x.planoId === pid ? pronta : x)) : [...retros, pronta];
-        return pronta;
-      };
-      const indisponivel = () => json(409, { erro: 'retro_indisponivel', mensagem: `O plano ${dono.plano.nome} ainda está em andamento. A retrospectiva abre quando todos os testes estiverem concluídos.` });
-      const travada = () => json(409, { erro: 'retro_fechada', mensagem: 'A retrospectiva está fechada: reabra para mexer em notas e votos.' });
-      const bloqueio = () => (!dono.resumo.executado ? indisponivel() : atual.status === 'fechada' ? travada() : null);
-      const [, , , sub, id, acao] = partes;
-
-      if (!sub && metodo === 'GET') return json(200, atual);
-      if (!sub && metodo === 'PUT') {
-        if (corpo?.status !== 'aberta' && !dono.resumo.executado) return indisponivel();
-        let novo = { ...atual };
-        if (typeof corpo?.anonimas === 'boolean') {
-          if (atual.status === 'fechada') return travada();
-          novo = { ...novo, anonimas: corpo.anonimas };
-        }
-        if (corpo?.status === 'fechada') novo = { ...novo, status: 'fechada', fechadaEm: new Date().toISOString(), fechadaPor: (corpo.autor as string | null) ?? null };
-        if (corpo?.status === 'aberta') novo = { ...novo, status: 'aberta', fechadaEm: null, fechadaPor: null };
-        return json(200, gravar(novo));
-      }
-      if (sub === 'notas') {
-        if (!id && metodo === 'POST') {
-          const bloqueada = bloqueio();
-          if (bloqueada) return bloqueada;
-          if (!String(corpo?.texto ?? '').trim()) return json(400, { erro: 'validacao', mensagens: ['Texto da nota é obrigatório.'] });
-          const nota = { id: `nt_fake${sequencia++}`, coluna: corpo?.coluna as 'bem' | 'melhorar', texto: String(corpo?.texto).trim(), autor: String(corpo?.autor ?? ''), em: new Date().toISOString(), votos: [] as string[] };
-          return json(201, gravar({ ...atual, notas: [...atual.notas, nota] }));
-        }
-        if (id && !acao && metodo === 'DELETE') {
-          const bloqueada = bloqueio();
-          if (bloqueada) return bloqueada;
-          return json(200, gravar({ ...atual, notas: atual.notas.filter((n) => n.id !== id) }));
-        }
-        if (id && acao === 'votos' && metodo === 'POST') {
-          const bloqueada = bloqueio();
-          if (bloqueada) return bloqueada;
-          const pessoaVoto = String(corpo?.pessoa ?? '');
-          return json(200, gravar({ ...atual, notas: atual.notas.map((n) => (n.id !== id ? n : { ...n, votos: n.votos.includes(pessoaVoto) ? n.votos.filter((v) => v !== pessoaVoto) : [...n.votos, pessoaVoto] })) }));
-        }
-      }
-      if (sub === 'acoes') {
-        if (!id && metodo === 'POST') {
-          if (!String(corpo?.texto ?? '').trim()) return json(400, { erro: 'validacao', mensagens: ['Ação é obrigatório.'] });
-          const nova = {
-            id: `ac_fake${sequencia++}`,
-            texto: String(corpo?.texto).trim(),
-            responsavel: (corpo?.responsavel as string | null | undefined) ?? null,
-            prazo: (corpo?.prazo as string | null | undefined) ?? null,
-            feito: false,
-            feitoEm: null,
-            feitoPor: null,
-            origem: (corpo?.origem as string | null | undefined) ?? null,
-            incId: (corpo?.incId as string | null | undefined) ?? null,
-            criadaEm: new Date().toISOString(),
-            criadaPor: (corpo?.autor as string | null | undefined) ?? null,
-          };
-          return json(201, gravar({ ...atual, acoes: [...atual.acoes, nova] }));
-        }
-        if (id && metodo === 'PATCH') {
-          return json(
-            200,
-            gravar({
-              ...atual,
-              acoes: atual.acoes.map((a) => {
-                if (a.id !== id) return a;
-                const nova = { ...a, ...(corpo?.texto !== undefined ? { texto: String(corpo.texto) } : {}), ...(corpo && 'responsavel' in corpo ? { responsavel: corpo.responsavel as string | null } : {}), ...(corpo && 'prazo' in corpo ? { prazo: (corpo.prazo as string | null) || null } : {}) };
-                if (typeof corpo?.feito === 'boolean') {
-                  nova.feito = corpo.feito;
-                  nova.feitoEm = corpo.feito ? new Date().toISOString() : null;
-                  nova.feitoPor = corpo.feito ? ((corpo.autor as string | null | undefined) ?? null) : null;
-                }
-                return nova;
-              }),
-            }),
-          );
-        }
-        if (id && metodo === 'DELETE') return json(200, gravar({ ...atual, acoes: atual.acoes.filter((a) => a.id !== id) }));
-      }
-      return json(404, { erro: 'nao_encontrado' });
-    }
+    if (partes[1] === 'retros') return rotaRetros(rota);
 
     if (partes[1] === 'incidentes') {
-      const numero = partes[2]?.toUpperCase();
-      if (!numero && metodo === 'GET') return json(200, { incidentes });
-      if (!numero && metodo === 'POST') {
-        const novoNumero = String(corpo?.numero ?? '').trim().toUpperCase();
-        if (!novoNumero || !String(corpo?.titulo ?? '').trim()) return json(400, { erro: 'validacao', mensagens: ['Número e título são obrigatórios.'] });
-        if (incidentes.some((i) => i.numero === novoNumero)) return json(409, { erro: 'id_duplicado', mensagem: `Já existe o INC ${novoNumero}.` });
-        const criado: Incidente = {
-          numero: novoNumero,
-          titulo: String(corpo?.titulo).trim(),
-          descricao: String(corpo?.descricao ?? ''),
-          status: 'novo',
-          severidade: (corpo?.severidade as Incidente['severidade'] | undefined) ?? 'media',
-          responsavel: (corpo?.responsavel as string | null | undefined) ?? null,
-          testesAfetados: (corpo?.testesAfetados as string[] | undefined) ?? [],
-          comentarios: [],
-          historico: [],
-          abertoEm: CRIADO,
-          resolvidoEm: null,
-          atualizadoEm: CRIADO,
-          versao: 1,
-        };
-        incidentes = [...incidentes, criado];
-        return json(201, criado);
-      }
-      const alvo = incidentes.find((i) => i.numero === numero);
-      if (!alvo) return json(404, { erro: 'nao_encontrado', mensagem: `INC ${numero} não encontrado.` });
-      if (!partes[3] && metodo === 'PUT') {
-        if (corpo?.versao !== alvo.versao) return json(409, { erro: 'versao_antiga', mensagem: `${numero} foi alterado por outra pessoa. Recarregue antes de salvar.` });
-        const { versao: _v, autor, ...campos } = (corpo ?? {}) as Record<string, unknown>;
-        const novoStatus = campos.status as Incidente['status'] | undefined;
-        const atualizado = {
-          ...alvo,
-          ...campos,
-          resolvidoEm: novoStatus === undefined ? alvo.resolvidoEm : novoStatus === 'resolvido' ? CRIADO : null,
-          historico: [
-            ...alvo.historico,
-            ...(novoStatus && novoStatus !== alvo.status ? [{ em: CRIADO, autor: (autor as string | null) ?? null, tipo: 'status' as const, de: alvo.status, para: novoStatus }] : []),
-          ],
-          versao: alvo.versao + 1,
-        } as Incidente;
-        incidentes = incidentes.map((i) => (i === alvo ? atualizado : i));
-        return json(200, atualizado);
-      }
-      if (!partes[3] && metodo === 'DELETE') {
-        incidentes = incidentes.filter((i) => i !== alvo);
-        return json(204, null);
-      }
-      if (partes[3] === 'comentarios' && metodo === 'POST') {
-        const comentario = { id: `cm_${alvo.comentarios.length + 1}`, autor: (corpo?.autor as string | null) ?? null, texto: String(corpo?.texto ?? ''), em: CRIADO };
-        const atualizado = { ...alvo, comentarios: [...alvo.comentarios, comentario], versao: alvo.versao + 1 };
-        incidentes = incidentes.map((i) => (i === alvo ? atualizado : i));
-        return json(201, atualizado);
-      }
-      if (partes[3] === 'vincular' && metodo === 'POST') {
-        const novos = ((corpo?.idCenarios as string[] | undefined) ?? []).filter((t) => !alvo.testesAfetados.includes(t));
-        const atualizado = { ...alvo, testesAfetados: [...alvo.testesAfetados, ...novos], versao: alvo.versao + 1 };
-        incidentes = incidentes.map((i) => (i === alvo ? atualizado : i));
-        return json(200, atualizado);
-      }
-      if (partes[3] === 'vinculo' && metodo === 'DELETE') {
-        const atualizado = { ...alvo, testesAfetados: alvo.testesAfetados.filter((t) => t !== partes[4]), versao: alvo.versao + 1 };
-        incidentes = incidentes.map((i) => (i === alvo ? atualizado : i));
-        return json(200, atualizado);
-      }
+      const resposta = rotaIncidentes(rota);
+      if (resposta) return resposta;
     }
 
     if (partes[1] === 'visoes') {
