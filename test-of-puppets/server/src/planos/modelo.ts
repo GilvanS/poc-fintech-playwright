@@ -22,6 +22,10 @@ export interface ItemPlano {
   posicao: number;
   versao: number;
   atualizadoEm?: string;
+  /** Cronômetro: instante ISO em que o trecho atual começou. Ausente com o teste parado ou pausado. */
+  iniciadoEm?: string;
+  /** Cronômetro: tempo já contado antes do trecho atual (trechos anteriores à pausa), em ms. */
+  acumuladoMs?: number;
 }
 
 export const DECISOES = ['go', 'no_go', 'go_excecao'] as const;
@@ -352,6 +356,47 @@ export function validarPatchItem(entrada: unknown): Validacao<{ versao: number; 
   if (!tocou) mensagens.push('Informe ao menos um campo para alterar.');
   if (mensagens.length > 0 || !versaoValida(entrada.versao)) return { ok: false, mensagens };
   return { ok: true, valor: { versao: entrada.versao, campos } };
+}
+
+export const ACOES_CRONOMETRO = ['iniciar', 'pausar', 'retomar', 'finalizar'] as const;
+export type AcaoCronometro = (typeof ACOES_CRONOMETRO)[number];
+
+/** Pedido do cronômetro de um teste. `resultado` só vale (e é obrigatório) ao finalizar. */
+export interface EntradaCronometro {
+  acao: AcaoCronometro;
+  resultado?: Resultado;
+  observacoes?: string;
+  /** Substitui o tempo medido pelo cronômetro (a pessoa corrige ao registrar). */
+  tempoRealMin?: number;
+}
+
+export function validarCronometro(entrada: unknown): Validacao<{ versao: number; entrada: EntradaCronometro }> {
+  if (!ehObjeto(entrada)) return { ok: false, mensagens: [MSG_OBJETO] };
+  const mensagens: string[] = [];
+  if (!versaoValida(entrada.versao)) mensagens.push(MSG_VERSAO('teste'));
+
+  const acao = (ACOES_CRONOMETRO as readonly unknown[]).includes(entrada.acao) ? (entrada.acao as AcaoCronometro) : undefined;
+  if (!acao) mensagens.push(`Ação deve ser uma destas: ${ACOES_CRONOMETRO.join(', ')}.`);
+
+  const pedido: EntradaCronometro = { acao: acao ?? 'iniciar' };
+  if (acao === 'finalizar') {
+    if (entrada.resultado === 'passou' || entrada.resultado === 'falhou') pedido.resultado = entrada.resultado;
+    else mensagens.push('Informe o resultado: passou ou falhou.');
+
+    if (presente(entrada, 'observacoes') && !vazio(entrada.observacoes)) {
+      if (typeof entrada.observacoes !== 'string') mensagens.push('Observações deve ser texto.');
+      else if (entrada.observacoes.trim().length > 1000) mensagens.push('Observações deve ter no máximo 1000 caracteres.');
+      else pedido.observacoes = entrada.observacoes.trim();
+    }
+    if (presente(entrada, 'tempoRealMin') && entrada.tempoRealMin !== null) {
+      if (typeof entrada.tempoRealMin === 'number' && Number.isInteger(entrada.tempoRealMin) && entrada.tempoRealMin >= 0 && entrada.tempoRealMin <= 100000) {
+        pedido.tempoRealMin = entrada.tempoRealMin;
+      } else mensagens.push('tempoRealMin deve ser um inteiro de 0 a 100000.');
+    }
+  }
+
+  if (mensagens.length > 0 || !versaoValida(entrada.versao)) return { ok: false, mensagens };
+  return { ok: true, valor: { versao: entrada.versao, entrada: pedido } };
 }
 
 export function resumir(plano: Plano): ResumoPlano {

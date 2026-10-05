@@ -9,9 +9,7 @@ import type { Retro } from '../src/retros/clienteRetros';
 import type { Lembrete } from '../src/lembretes/clienteLembretes';
 import { CRIADO, item, json, pessoa, resumir, type Chamada, type Rota } from './apiFalsaBase';
 import { criarRotaIncidentes } from './apiFalsaIncidentes';
-import { criarRotaExecucoes } from './apiFalsaExecucoes';
 import { criarRotaLembretes } from './apiFalsaLembretes';
-import type { ChecagemAmbiente, Run } from '../src/execucao/clienteExecucoes';
 import { criarRotaRetros } from './apiFalsaRetros';
 
 // Os dados de exemplo e os tipos continuam saindo daqui, para os testes importarem tudo de um lugar só.
@@ -45,10 +43,6 @@ interface Opcoes {
   presenca?: string[];
   /** Faz o POST de "marcar como lida" responder 500. */
   lembretesRecusados?: boolean;
-  /** Execuções que já existem no servidor falso (Play cria uma nova "rodando"; nada roda de verdade). */
-  execucoes?: Run[];
-  /** O que "Verificar ambiente" devolve. */
-  ambiente?: ChecagemAmbiente[];
 }
 
 /** Servidor em memória: responde como a API real nas rotas de planos e cenários. */
@@ -83,7 +77,6 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
   const rotaIncidentes = criarRotaIncidentes(opcoes.incidentes ?? []);
   const rotaRetros = criarRotaRetros(opcoes.retros ?? [], achar, () => sequencia++);
   const rotaLembretes = criarRotaLembretes(opcoes.lembretes ?? [], opcoes.lembretesRecusados);
-  const rotaExecucoes = criarRotaExecucoes(opcoes.execucoes ?? [], opcoes.ambiente);
 
   const falso = vi.fn(async (entrada: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(entrada), 'http://local');
@@ -122,8 +115,6 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
     }
 
     if (partes[1] === 'lembretes') return rotaLembretes(rota);
-
-    if (partes[1] === 'execucoes') return rotaExecucoes(rota);
 
     if (partes[1] === 'retros') return rotaRetros(rota);
 
@@ -350,6 +341,32 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
     if (partes[3] === 'testes' && partes[4]) {
       const alvo = atual.itens.find((i) => i.idCenario === partes[4]);
       if (!alvo) return json(404, { erro: 'nao_encontrado', mensagem: 'Teste não está no plano.' });
+      if (partes[5] === 'cronometro' && metodo === 'POST') {
+        // Cronômetro do servidor falso: mesma ideia do real (início carimbado, pausa acumula, finalizar conclui com resultado).
+        const agora = Date.now();
+        const novo: ItemPlano = { ...alvo, versao: alvo.versao + 1 };
+        const rodando = alvo.status === 'em_andamento' && alvo.iniciadoEm !== undefined;
+        const acao = corpo?.acao;
+        if (acao === 'iniciar') {
+          if (alvo.bloqueadoPor.length > 0) {
+            return json(409, { erro: 'dependencia_pendente', mensagem: `Aguardando ${alvo.bloqueadoPor.join(', ')} passar: ${alvo.idCenario} usa a mesma massa e só pode andar depois.` });
+          }
+          Object.assign(novo, { status: 'em_andamento', iniciadoEm: new Date(agora).toISOString(), acumuladoMs: 0 });
+          delete novo.resultado;
+        } else if (acao === 'pausar') {
+          novo.acumuladoMs = (alvo.acumuladoMs ?? 0) + (rodando ? agora - Date.parse(alvo.iniciadoEm!) : 0);
+          delete novo.iniciadoEm;
+        } else if (acao === 'retomar') {
+          novo.iniciadoEm = new Date(agora).toISOString();
+        } else {
+          Object.assign(novo, { status: 'concluido', resultado: corpo?.resultado, tempoRealMin: corpo?.tempoRealMin ?? 1, dataExecucao: '2026-10-05' });
+          if (corpo?.observacoes) novo.observacoes = String(corpo.observacoes);
+          delete novo.iniciadoEm;
+          delete novo.acumuladoMs;
+        }
+        const salvo = salvar({ ...atual, itens: atual.itens.map((i) => (i === alvo ? novo : i)) });
+        return json(200, salvo.itens.find((i) => i.idCenario === alvo.idCenario));
+      }
       if (metodo === 'DELETE') {
         salvar({ ...atual, itens: atual.itens.filter((i) => i !== alvo) });
         return json(204, null);

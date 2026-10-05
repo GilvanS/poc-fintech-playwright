@@ -1,10 +1,4 @@
-import { join, resolve } from 'node:path';
 import express, { type ErrorRequestHandler, type Express } from 'express';
-import { criarExecutor, type Executor } from './runner/executor.ts';
-import { rotasExecucoes } from './routes/execucoes.ts';
-import { criarFonteApp } from './massa/fonteApp.ts';
-import { criarServicoMassa, planilhaPadrao, type ServicoMassa } from './massa/servico.ts';
-import { rotasMassa } from './routes/massa.ts';
 import { ErroNegocio, STATUS_POR_ERRO } from './erros.ts';
 import { criarRepos, DADOS_PADRAO } from './repos.ts';
 import { rotasCenarios } from './routes/cenarios.ts';
@@ -25,12 +19,6 @@ export interface OpcoesApp {
   dirDados?: string;
   /** Liga a rota de reset usada só pelo E2E (nunca em uso normal). */
   modoTeste?: boolean;
-  /** Projeto de testes (onde rodam os comandos). Padrão: `PUPPETS_RAIZ` ou a pasta acima de `dados/`. */
-  raiz?: string;
-  /** Troca o executor real (os testes injetam um com processo falso). */
-  executor?: Executor;
-  /** Troca o serviço de atualizar a massa (os testes usam uma cópia temporária da planilha e uma fonte falsa). */
-  servicoMassa?: ServicoMassa;
 }
 
 const tratarErros: ErrorRequestHandler = (erro, _req, res, _next) => {
@@ -46,14 +34,11 @@ const tratarErros: ErrorRequestHandler = (erro, _req, res, _next) => {
   res.status(500).json({ erro: 'erro_interno', mensagem: 'Erro interno no servidor.' });
 };
 
-/** Endereços que "Verificar ambiente" confere; `PUPPETS_URLS_APP` (separados por vírgula) troca o padrão (3000 e 3001). */
-const urlsDoApp = () => process.env.PUPPETS_URLS_APP?.split(',').map((u) => u.trim()).filter(Boolean);
-
 /**
  * Monta o app Express da ferramenta. Fica separado de `index.ts` para os testes
  * subirem o servidor numa porta aleatória, sem depender de porta fixa.
  */
-export function createApp({ dirDados = DADOS_PADRAO, modoTeste = false, raiz, executor, servicoMassa }: OpcoesApp = {}): Express {
+export function createApp({ dirDados = DADOS_PADRAO, modoTeste = false }: OpcoesApp = {}): Express {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json());
@@ -76,15 +61,6 @@ export function createApp({ dirDados = DADOS_PADRAO, modoTeste = false, raiz, ex
   app.use('/api/retros', rotasRetros(repos.retros));
   app.use('/api/lembretes', rotasLembretes(repos));
   app.use('/api/presenca', rotasPresenca(criarPresenca()));
-  const raizTestes = raiz ?? (process.env.PUPPETS_RAIZ ? resolve(process.env.PUPPETS_RAIZ) : resolve(DADOS_PADRAO, '..', '..'));
-  app.use(
-    '/api/execucoes',
-    rotasExecucoes(executor ?? criarExecutor({ raiz: raizTestes, dirLogs: join(dirDados, 'execucoes'), planos: repos.planos, urlsApp: urlsDoApp() }), raizTestes),
-  );
-  app.use(
-    '/api/massa',
-    rotasMassa(servicoMassa ?? criarServicoMassa({ planilha: planilhaPadrao(raizTestes), dirBackups: join(dirDados, 'backups'), fonte: criarFonteApp() })),
-  );
   app.use('/api/semente', rotasSemente(repos));
   if (modoTeste) app.use('/api/teste', rotasTeste(dirDados, repos));
 

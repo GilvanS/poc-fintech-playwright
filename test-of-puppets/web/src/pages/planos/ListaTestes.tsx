@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowDownUp, Eye, Trash2 } from 'lucide-react';
-import BotaoExecutar from '../../execucao/BotaoExecutar.tsx';
+import BotaoCronometro from '../../cronometro/BotaoCronometro.tsx';
 import { useIncidentes } from '../../incidentes/ContextoIncidentes.tsx';
 import { usePessoas } from '../../pessoas/ContextoPessoas.tsx';
 import { ROTULO_STATUS, STATUS, type CamposItem, type ItemPlano, type Prioridade, type Resultado, type Status } from './clientePlanos.ts';
@@ -197,7 +197,7 @@ export default function ListaTestes({ itens, numeros, podeOrdenar, selecionados,
               </td>
               <td className="py-3">
                 <div className="flex items-center justify-end gap-1">
-                  <BotaoExecutar idCenario={item.idCenario} />
+                  <BotaoCronometro item={item} />
                   <button type="button" onClick={() => onVer(item.idCenario)} aria-label={`Ver detalhes de ${item.idCenario}`} className={botaoIcone}>
                     <Eye size={14} aria-hidden />
                   </button>

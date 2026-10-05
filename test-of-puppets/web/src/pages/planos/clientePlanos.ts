@@ -74,6 +74,10 @@ export interface ItemPlano {
   versao: number;
   /** Instante ISO da última alteração do teste (o Release usa para avisar "mudou depois do GO"). */
   atualizadoEm?: string;
+  /** Cronômetro: início do trecho atual (ISO). Ausente com o teste parado ou pausado. */
+  iniciadoEm?: string;
+  /** Cronômetro: tempo já contado antes do trecho atual, em ms. */
+  acumuladoMs?: number;
   dependeDe: string[];
   massaCompartilhadaCom: string[];
   /** Dependências deste plano que ainda não passaram. */
@@ -133,6 +137,16 @@ export const removerTeste = (id: string, idCenario: string) =>
   pedir<void>('DELETE', `${base(id)}/testes/${encodeURIComponent(idCenario)}`);
 export const alterarTeste = (id: string, idCenario: string, versao: number, campos: CamposItem) =>
   pedir<ItemPlano>('PATCH', `${base(id)}/testes/${encodeURIComponent(idCenario)}`, { ...campos, versao });
+export type AcaoCronometro = 'iniciar' | 'pausar' | 'retomar' | 'finalizar';
+export interface EntradaFinalizar {
+  resultado: Resultado;
+  observacoes?: string;
+  /** Corrige o tempo medido pelo cronômetro. */
+  tempoRealMin?: number;
+}
+/** ▶ iniciar, ⏸ pausar, retomar e ■ finalizar (com resultado): o servidor carimba a hora e mede o tempo. */
+export const cronometroTeste = (id: string, idCenario: string, versao: number, acao: AcaoCronometro, extra?: EntradaFinalizar) =>
+  pedir<ItemPlano>('POST', `${base(id)}/testes/${encodeURIComponent(idCenario)}/cronometro`, { acao, versao, ...extra });
 export const incluirTestes = (id: string, idCenarios: string[], dataPlanejada?: string) =>
   pedir<DetalhePlano & { incluidos: string[] }>('POST', `${base(id)}/testes`, { idCenarios, ...(dataPlanejada ? { dataPlanejada } : {}) });
 /** Carrega os dados de exemplo (fictícios). Só funciona com tudo vazio; senão o servidor responde 409. */

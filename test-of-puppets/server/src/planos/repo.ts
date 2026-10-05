@@ -6,12 +6,13 @@ import {
   resumir,
   type CamposItem,
   type CamposPlano,
+  type EntradaCronometro,
   type ItemPlano,
   type NovaDecisao,
   type Plano,
   type ResumoPlano,
 } from './modelo.ts';
-import { aplicarPatch, conflitoDeData, mensagemDependencia, pendenciasDeDependencia } from './regras.ts';
+import { aplicarCronometro, aplicarPatch, conflitoDeData, mensagemDependencia, pendenciasDeDependencia } from './regras.ts';
 
 /** Item do plano + os dados do cenário e o que se calcula a partir da massa. */
 export interface ItemVisao extends ItemPlano {
@@ -62,6 +63,8 @@ export interface RepoPlanos {
   /** Define a ordem de execução (posição 1..n). Precisa conter exatamente os testes do plano. */
   reordenar(id: string, ordem: string[]): Promise<DetalhePlano>;
   alterarItem(id: string, idCenario: string, versao: number, campos: CamposItem): Promise<ItemVisao>;
+  /** ▶ iniciar, ⏸ pausar, retomar e ■ finalizar (com resultado) um teste: o servidor carimba a hora e mede o tempo. */
+  cronometro(id: string, idCenario: string, versao: number, entrada: EntradaCronometro): Promise<ItemVisao>;
   /** Acrescenta uma decisão go/no-go ao histórico do Release. Não muda a versão do plano (não gera falso conflito). */
   registrarDecisao(id: string, entrada: NovaDecisao): Promise<DetalhePlano>;
   /** Nomes dos planos que têm o cenário (para impedir a exclusão do cadastro). */
@@ -369,6 +372,30 @@ export function criarRepoPlanos(caminho: string, { catalogo, agora = () => new D
           if (conflito) throw new ErroNegocio('data_antes_da_dependencia', conflito);
         }
 
+        const plano: Plano = { ...atual, itens: atual.itens.map((i) => (i.idCenario === idCenario ? novo : i)) };
+        await gravar(substituir(arquivo, plano));
+        return visaoDoItem(novo, plano, new Map(cenarios.map((c) => [c.idCenario, c])));
+      });
+    },
+
+    cronometro(id, idCenario, versao, entrada) {
+      return emFila(async () => {
+        const arquivo = await ler();
+        const atual = achar(arquivo, id);
+        const item = atual.itens.find((i) => i.idCenario === idCenario);
+        if (!item) throw new ErroNegocio('nao_encontrado', `O teste ${idCenario} não está no plano ${atual.nome}.`);
+        if (item.versao !== versao) {
+          throw new ErroNegocio('versao_antiga', `O teste ${idCenario} foi alterado por outra pessoa. Recarregue antes de salvar.`);
+        }
+
+        const cenarios = await catalogo();
+        // Mesma regra da massa de quem muda o status na mão: só começa e só conclui quem já pode andar.
+        if (entrada.acao === 'iniciar' || entrada.acao === 'finalizar') {
+          const pendencias = pendenciasDeDependencia(dependencias(cenarios).get(idCenario) ?? [], atual.itens);
+          if (pendencias.length > 0) throw new ErroNegocio('dependencia_pendente', mensagemDependencia(idCenario, pendencias));
+        }
+
+        const novo = aplicarCronometro(item, entrada, agora());
         const plano: Plano = { ...atual, itens: atual.itens.map((i) => (i.idCenario === idCenario ? novo : i)) };
         await gravar(substituir(arquivo, plano));
         return visaoDoItem(novo, plano, new Map(cenarios.map((c) => [c.idCenario, c])));

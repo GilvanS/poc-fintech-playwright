@@ -31,8 +31,8 @@ import ListaTestes from './ListaTestes.tsx';
 import OrdemModal from './OrdemModal.tsx';
 import TesteModal from './TesteModal.tsx';
 import AcoesPendentesAnteriores from '../retro/AcoesPendentesAnteriores.tsx';
-import { ExecucaoDoPlano } from '../../execucao/ContextoExecucao.tsx';
-import PainelExecucao from '../../execucao/PainelExecucao.tsx';
+import AvisoCronometro from '../../cronometro/AvisoCronometro.tsx';
+import { CronometroDoPlano } from '../../cronometro/ContextoCronometro.tsx';
 
 interface Props {
   id: string;
@@ -293,7 +293,7 @@ function PlanoDetalheCorpo({ id, onFechar, onMudou, hoje, modo = 'modal', visaoI
         )}
 
         {dados && <AcoesPendentesAnteriores planoId={id} hoje={hoje} onAbrirRetro={onAbrirRetro} />}
-        {dados && <PainelExecucao itens={itens} onReler={() => { void carregar(); onMudou(); }} />}
+        {dados && <AvisoCronometro onReler={() => { void carregar(); onMudou(); }} />}
 
         {dados && (
           <>
@@ -487,11 +487,11 @@ function PlanoDetalheCorpo({ id, onFechar, onMudou, hoje, modo = 'modal', visaoI
   );
 }
 
-/** O detalhe do plano com Play/Stop dos testes: o acompanhamento das execuções envolve a tela inteira. */
+/** O detalhe do plano com ▶/⏸/■ nos testes: o cronômetro envolve a tela inteira. */
 export default function PlanoDetalhe(props: Props) {
   return (
-    <ExecucaoDoPlano planoId={props.id}>
+    <CronometroDoPlano planoId={props.id}>
       <PlanoDetalheCorpo {...props} />
-    </ExecucaoDoPlano>
+    </CronometroDoPlano>
   );
 }

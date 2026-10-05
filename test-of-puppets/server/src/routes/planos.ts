@@ -8,6 +8,7 @@ import {
   validarMover,
   validarNovoPlano,
   validarOrdem,
+  validarCronometro,
   validarPatchItem,
 } from '../planos/modelo.ts';
 
@@ -106,6 +107,15 @@ export function rotasPlanos(repo: RepoPlanos): Router {
   rotas.delete('/:id/testes/:cenario', async (req, res) => {
     await repo.removerTeste(String(req.params.id), String(req.params.cenario));
     res.status(204).end();
+  });
+
+  rotas.post('/:id/testes/:cenario/cronometro', async (req, res) => {
+    const validado = validarCronometro(req.body);
+    if (!validado.ok) {
+      res.status(400).json(recusar(validado.mensagens));
+      return;
+    }
+    res.json(await repo.cronometro(String(req.params.id), String(req.params.cenario), validado.valor.versao, validado.valor.entrada));
   });
 
   rotas.patch('/:id/testes/:cenario', async (req, res) => {

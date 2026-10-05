@@ -1,5 +1,5 @@
 import { Lock } from 'lucide-react';
-import BotaoExecutar from '../../execucao/BotaoExecutar.tsx';
+import BotaoCronometro from '../../cronometro/BotaoCronometro.tsx';
 import { useIncidentes } from '../../incidentes/ContextoIncidentes.tsx';
 import { usePessoas } from '../../pessoas/ContextoPessoas.tsx';
 import { ROTULO_STATUS, STATUS, type CamposItem, type ItemPlano, type Resultado, type Status } from './clientePlanos.ts';
@@ -38,7 +38,7 @@ export default function CartaoKanban({ item, onAbrir, onAlterar, onMover, onArra
         >
           {item.idCenario}
         </button>
-        <BotaoExecutar idCenario={item.idCenario} />
+        <BotaoCronometro item={item} />
       </div>
       <span className="font-bold leading-snug">{item.nome ?? '-'}</span>
       <span className="text-[11px] text-on-surface-variant">
