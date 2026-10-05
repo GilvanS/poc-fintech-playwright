@@ -31,6 +31,8 @@ import ListaTestes from './ListaTestes.tsx';
 import OrdemModal from './OrdemModal.tsx';
 import TesteModal from './TesteModal.tsx';
 import AcoesPendentesAnteriores from '../retro/AcoesPendentesAnteriores.tsx';
+import { ExecucaoDoPlano } from '../../execucao/ContextoExecucao.tsx';
+import PainelExecucao from '../../execucao/PainelExecucao.tsx';
 
 interface Props {
   id: string;
@@ -66,7 +68,7 @@ function mensagemDe(erro: unknown): string {
  * Modal "Detalhe do plano" (M3): filtros, Visão lista e Visão card (kanban) sobre os mesmos testes,
  * mais o botão de ordem de execução. Tudo é planejamento: nada é executado.
  */
-export default function PlanoDetalhe({ id, onFechar, onMudou, hoje, modo = 'modal', visaoInicial = 'lista', filtrosIniciais = SEM_FILTROS, testeInicial, onAbrirRetro }: Props) {
+function PlanoDetalheCorpo({ id, onFechar, onMudou, hoje, modo = 'modal', visaoInicial = 'lista', filtrosIniciais = SEM_FILTROS, testeInicial, onAbrirRetro }: Props) {
   const ehPagina = modo === 'pagina';
   const [visao, setVisao] = useState<Visao>(visaoInicial);
   const [filtros, setFiltros] = useState<Filtros>(filtrosIniciais);
@@ -291,6 +293,7 @@ export default function PlanoDetalhe({ id, onFechar, onMudou, hoje, modo = 'moda
         )}
 
         {dados && <AcoesPendentesAnteriores planoId={id} hoje={hoje} onAbrirRetro={onAbrirRetro} />}
+        {dados && <PainelExecucao itens={itens} onReler={() => { void carregar(); onMudou(); }} />}
 
         {dados && (
           <>
@@ -481,5 +484,14 @@ export default function PlanoDetalhe({ id, onFechar, onMudou, hoje, modo = 'moda
         </div>
       )}
     </div>
+  );
+}
+
+/** O detalhe do plano com Play/Stop dos testes: o acompanhamento das execuções envolve a tela inteira. */
+export default function PlanoDetalhe(props: Props) {
+  return (
+    <ExecucaoDoPlano planoId={props.id}>
+      <PlanoDetalheCorpo {...props} />
+    </ExecucaoDoPlano>
   );
 }

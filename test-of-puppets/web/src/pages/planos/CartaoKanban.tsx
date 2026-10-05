@@ -1,4 +1,5 @@
 import { Lock } from 'lucide-react';
+import BotaoExecutar from '../../execucao/BotaoExecutar.tsx';
 import { useIncidentes } from '../../incidentes/ContextoIncidentes.tsx';
 import { usePessoas } from '../../pessoas/ContextoPessoas.tsx';
 import { ROTULO_STATUS, STATUS, type CamposItem, type ItemPlano, type Resultado, type Status } from './clientePlanos.ts';
@@ -28,14 +29,17 @@ export default function CartaoKanban({ item, onAbrir, onAlterar, onMover, onArra
       onDragStart={() => onArrastar(item.idCenario)}
       className={`flex cursor-grab flex-col gap-1.5 rounded-xl border bg-volt-surface p-3 text-sm ${bloqueado ? 'border-volt-green/30' : 'border-white/10'}`}
     >
-      <button
-        type="button"
-        onClick={() => onAbrir(item.idCenario)}
-        aria-label={`Abrir ${item.idCenario}`}
-        className="self-start font-mono text-xs text-volt-green underline-offset-2 hover:underline cursor-pointer"
-      >
-        {item.idCenario}
-      </button>
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => onAbrir(item.idCenario)}
+          aria-label={`Abrir ${item.idCenario}`}
+          className="font-mono text-xs text-volt-green underline-offset-2 hover:underline cursor-pointer"
+        >
+          {item.idCenario}
+        </button>
+        <BotaoExecutar idCenario={item.idCenario} />
+      </div>
       <span className="font-bold leading-snug">{item.nome ?? '-'}</span>
       <span className="text-[11px] text-on-surface-variant">
         {item.idMassa ? `${item.funcionalidade ?? '-'} · massa ${item.idMassa}` : (item.funcionalidade ?? '-')}

@@ -1,4 +1,4 @@
-﻿# Test of Puppets — tela de Planos de Execução (poc-fintech-playwright)
+# Test of Puppets — tela de Planos de Execução (poc-fintech-playwright)
 
 > **Escopo:** pasta nova `test-of-puppets/` do projeto **poc-fintech-playwright**. **Não faz parte do
 > FintechBankApp** e não altera nada nele. Este documento é só o **plano**; nenhum código foi escrito.
@@ -6,7 +6,7 @@
 > As **visões** inspiradas nos modelos do GitHub Projects (Kanban, Roadmap, Bug tracker, Release,
 > Iterações, Lançamento, Planejamento, Retro) estão em [VISOES.md](VISOES.md) (task **T13**).
 > O que aproveitamos de `jira_clone`, `TestSprite/Docs` e `github-automated-repos`: [REFERENCIAS.md](REFERENCIAS.md).
-> **Decisão de 02/10/2026:** **sem execução por enquanto** (nada de Play): a ferramenta só planeja e visualiza (§7).
+> ~~**Decisão de 02/10/2026:** sem execução por enquanto~~ — **revogada em 04/10/2026**: Play/Stop (T7) está feito.
 > **Decisão de 02/10/2026:** o Excel (`data/MassaDados.xlsx`) é **só modelo de estrutura por enquanto**. A
 > ferramenta **não lê nem grava** a planilha e tem os próprios dados em `dados/`. Onde este texto ainda
 > fala em ler `data/`, vale a decisão acima ([VISOES.md](VISOES.md) §2.1).
@@ -44,7 +44,7 @@ de status informal. Você quer uma **página web** no estilo do *Test Manager* c
 1. **Criar um Plano de Execução** (ex.: "28/09/26") e **incluir nele** cenários da planilha;
 2. ver o plano em **lista** e em **cards** (Agendado → Em andamento → Refinamento → Concluído);
 3. abrir cada teste (**Geral / Cenário e Datas / Execuções**), com a **massa** (ID + CPF) à vista;
-4. ~~disparar o Playwright (Play) e ver o resultado voltar para a tela~~ *(adiado: por enquanto só planejar e visualizar)*;
+4. disparar o Playwright (Play/Stop) e ver o resultado voltar para a tela *(T7, feito em 04/10/2026)*;
 5. registrar **incidentes** (INC) ligados aos testes afetados;
 6. **atualizar a massa** depois do teste, sem quebrar a regra: *fatura fechada é imutável; só
    `saldo_conta`, `lim_utilizado`, `lim_disponivel`, `parcelas_a_vencer`, `fat_aberta` e o status mudam.*
@@ -64,7 +64,7 @@ de status informal. Você quer uma **página web** no estilo do *Test Manager* c
 |---|---|---|---|
 | D1 | Stack | pasta `test-of-puppets/` com **servidor Node/TS (Express)** + **front Vite/React/TS**, `package.json` próprio | projeto já usa `tsx`/TypeScript; kanban com arrastar precisa de UI de verdade; pasta independente não mexe na suíte nem no `workspaces` |
 | D2 | Fonte dos dados | **dados próprios** em `test-of-puppets/dados/*.json` (cenários, planos, execuções, INC, retros; SQLite fica como evolução). **O Excel não é lido nem gravado**, é só modelo de campos — [VISOES.md](VISOES.md) §2.1 | decisão do usuário (02/10/2026): não atrapalhar a suíte nem o Admin; JSON é fácil de versionar e restaurar |
-| D3 | Escrita na planilha | **nenhuma** por enquanto (a T9 está adiada). Se um dia voltar: só via `excelTableAppender`, com diff e confirmação | regra do projeto: nunca `XLSX.writeFile` (apaga formatação de Tabela) e confirmação antes de editar massa real |
+| D3 | Escrita na planilha | **só a T9** (Atualizar massa, 04/10/2026): troca de células por XML (mesma técnica do `excelTableAppender`), 6 colunas, com diff + confirmação + backup | regra do projeto: nunca `XLSX.writeFile` (apaga formatação de Tabela) e confirmação antes de editar massa real |
 | D4 | Rodar teste **(ADIADA: sem execução por enquanto)** | **Play = `child_process.spawn`** do comando Playwright que já existe (`npm run bdd:gen` + `playwright test --grep @CT… --project=bdd-headed`) | reaproveita 100% a suíte; fallback "copiar comando" se o navegador fechar no meio |
 | D5 | Segurança e uso | **substituída:** servidor compartilhado na rede interna, **sem senha**, seletor "Você" e `versao` por registro (ver [VISOES.md](VISOES.md) §2) | a ferramenta terá mais de uma pessoa; sem dado sensível novo |
 | D6 | Resultado do teste | ler `output/allure-results/*-result.json` (já gerado) — decisão final na T7 após inspecionar o `summaryReporter` | evita criar um reporter novo se o que existe já basta |
@@ -129,10 +129,10 @@ destrutivas (Excluir) ficam em vermelho e **sempre pedem confirmação** (M9).
 | M2 Incluir testes | botão **+ Incluir testes** (detalhe do plano) | `IncluirTestesModal` | T5 |
 | M3 Detalhe do plano | clique no card do plano | `PlanoDetalhe` | T5 |
 | M4 Detalhe do teste | olho 👁 na lista / clique no card | `TesteModal` | T6 |
-| M5 Log da execução **(ADIADO)** | **▶ Play** | `LogExecucaoModal` | T7 |
+| M5 Log da execução **(FEITO como painel "Execução")** | **▶ Play** | `LogExecucaoModal` | T7 |
 | M6 Registrar INC | **+ Registrar INC** (aba Incidentes) | `RegistrarIncModal` | T8 |
 | M7 Vincular INC existente | **Vincular INC existente** | `VincularIncModal` | T8 |
-| M8 Atualizar massa **(ADIADO)** | **Atualizar massa** (teste concluído) | `AtualizarMassaModal` | T9 |
+| M8 Atualizar massa **(FEITO, T9)** | **Atualizar massa** (teste concluído) | `AtualizarMassaModal` | T9 |
 | M9 Confirmações | Excluir plano/teste · Cancelar execução · Stop | `ConfirmarModal` | T5–T7 |
 | M10 Massa em conflito **(REMOVIDO)** | massa repetida é proposital; vira a marca `=` "compartilhada" | — | T6 |
 
@@ -273,7 +273,7 @@ destrutivas (Excluir) ficam em vermelho e **sempre pedem confirmação** (M9).
 └──────────────────────────────────────────────────────────┘
 ```
 
-**M8 — Atualizar massa (ADIADO: a ferramenta não grava mais em `data/`; mantido só como referência da T9)**
+**M8 — Atualizar massa (FEITO na T9; o desenho abaixo é o original)**
 
 ```
 ┌─ Atualizar massa 0483 (CT03.2) ───────────────────────────────────────── ✕ ┐
@@ -572,11 +572,19 @@ Execuções (1)
  28/09/26  [A iniciar]   -      -               -             -
 ```
 
-### T7 — Play / Stop / Standby e retorno do resultado (G) — ADIADA
+### T7 — Play / Stop e retorno do resultado (G) — ✔ FEITA (04/10/2026)
 
-> **Adiada em 02/10/2026:** nada de execução por enquanto; a ferramenta só planeja e visualiza. O desenho abaixo
-> fica guardado para quando a execução voltar. Itens que dependem dela e também ficam adiados: fila (`na_fila`),
-> "Verificar ambiente", "Reexecutar falhos", `runId`, pacote de falha e o botão "Execução ao vivo" do cabeçalho.
+> **Reativada em 04/10/2026** (pedido do usuário: "falta o 9 e 10", terminar as tasks). Código: `server/src/runner/{comando,resultado,executor}.ts`,
+> `routes/execucoes.ts`, `web/src/execucao/*`. Comandos = os mesmos dos scripts do projeto (`npm run bdd:gen` +
+> `npx playwright test --project=bdd-headed --headed --workers=1 --grep "@CT03\.2( |$)"`), `cwd` = raiz do projeto
+> (`PUPPETS_RAIZ`; troca por `PUPPETS_CMD_GERAR`/`PUPPETS_CMD_RODAR`, `{id}` vira o ID; ID só `CTnn.n`). Um por vez,
+> demais ficam `na_fila` (estado da execução, não do item). Play marca o item `em_andamento` → lê o resultado do Allure
+> (`output/allure-results`, etiqueta = ID) → `concluido` + `passou/falhou` + `dataExecucao` + `tempoRealMin` (mín. 1) +
+> linha nas observações. Stop/queda/sem resultado → `refinamento` + "Execução interrompida". API: `/api/execucoes`
+> (POST, `/falhos`, `/ambiente`, `/:runId`, `/:runId/log` SSE, `/log.txt`, `/parar`, `/arquivo`). Tela: ▶/■ no item
+> (lista e card), "Na fila", painel **Execução** (Verificar ambiente, Reexecutar falhos, log ao vivo, evidência, pacote de falha).
+> Limites: execuções ficam só na memória do servidor (reiniciar apaga a lista; os logs ficam em `dados/execucoes/`);
+> o "Standby" do desenho original não foi feito.
 
 **Objetivo:** o botão **Play** roda o cenário no Playwright e a tela mostra o resultado.
 **Arquivos:** `server/src/runner/playwright.ts`, `server/src/runner/resultado.ts`, `server/tests/runner.test.ts` (com `spawn` falso).
@@ -642,9 +650,18 @@ INC0715802766  Api de pagamentos não sensibiliza… [new]   29/09/2026  [21305]
 └────────────────────────────────────┘
 ```
 
-### T9 — Atualizar a massa em `data/` depois do teste, com confirmação (M) — ADIADA
+### T9 — Atualizar a massa em `data/` depois do teste, com confirmação (M) — ✔ FEITA (04/10/2026)
 
-> **Adiada em 02/10/2026:** a ferramenta não grava na planilha. Fica documentada para um eventual retorno.
+> **Reativada em 04/10/2026** (pedido do usuário). Código: `server/src/massa/{modelo,xlsx,fonteApp,servico}.ts`, `routes/massa.ts`,
+> `web/src/massa/*`. Duas etapas: `POST /api/massa/proposta {cpf}` só lê (aba `tbl_de_massas` + `GET /api/admin/scripts/export-massas-csv`
+> do FintechBankApp) e devolve o diff; `POST /api/massa/confirmar {propostaId}` é o único que grava. Colunas reais: `saldo_conta`,
+> `limite_utilizado`, `limite_disponivel`, `parcelas_a_vencer`, `fatura_aberta`, `status_fatura_fechada` (só VIGENTE → PAGO_MIN/PARCIAL/TOTAL);
+> `fatura_fechada` imutável (aparece travada no diff). Antes de gravar: backup em `dados/backups/MassaDados.<data>.xlsx` (nunca sobrescreve:
+> no mesmo dia acrescenta a hora), recusa se existir `data/~$MassaDados.xlsx` (Excel aberto) ou se a planilha mudou depois do diff, e depois de
+> gravar confere que nenhuma outra coluna mudou (se mudou, restaura o backup). Troca só o XML das células (estilo mantido, Tabela e outras abas
+> byte a byte iguais; nunca reescreve o workbook). Acesso ao FintechBankApp só por env do servidor: `PUPPETS_APP_URL` (padrão :3001) +
+> `PUPPETS_APP_TOKEN` ou `PUPPETS_APP_CPF`/`PUPPETS_APP_SENHA`. Planilha: `PUPPETS_PLANILHA` ou `<raiz>/data/MassaDados.xlsx`. Botão
+> "Atualizar massa" na aba "Cenário e Datas" do teste concluído. Testes só em planilha sintética (nunca o `MassaDados.xlsx` real).
 
 **Objetivo:** depois de um teste que consome massa (CT03.x), propor a atualização **só** das
 colunas permitidas, mostrar o diff e gravar **somente após confirmação**. É a única task que
@@ -796,7 +813,7 @@ opcionais e ficam em `dados/`, nunca em `data/`.
 
 ```
 T0 ─► T1 ─► T2 ─► T3 ─► T4 ─► T5 ─► T6 ─► T13.1/13.2 ─► T11 ─► T12 ─► T13.3 … T13.11
-                                  (T7 Play, T8 INC, T9 massa e T10 lembretes: fora do MVP, adiadas)
+                                  (T7 Play, T8 INC, T9 massa e T10 lembretes: fora do MVP; todas feitas depois, até 04/10/2026)
 ```
 
 **Andamento (03/10/2026), branch `feat/test-of-puppets`, nada commitado:** T0 ✔ (servidor :3100, tela :3101,
@@ -844,7 +861,7 @@ servidor + 555 da tela + 22 E2E).** **Release e Retro, pontas fechadas (04/10/20
 e `gsap` do pacote principal: o maior bloco caiu de 602 kB para 280 kB; conferido abrindo o `dist` no Chromium).
 **Sobras de fases antigas fechadas (04/10/2026):** "Mover para plano" em lote
 (T13.2), modal M12 "Equipe e capacidade" dentro do Planejamento (capacidade, cor, ativa, adicionar e excluir pessoa) e a
-presença "Online: …" no cabeçalho (T13.1). Adiadas de propósito: T7 e T9;
+presença "Online: …" no cabeçalho (T13.1). T7 e T9 estavam adiadas e foram feitas em 04/10/2026;
 a T11 traz os cenários de exemplo (hoje a lista nasce vazia).
 Use o PowerShell para `npm install`/`npm test`/`npm run dev`.
 **Escopo atual (decisão do usuário, 02/10/2026): SEM EXECUÇÃO.** Por enquanto a ferramenta só **planeja e
@@ -855,12 +872,12 @@ organizar por prioridade, responsável, estimativa e data. O status (Agendado, E
 Concluído) e o resultado (`passou`/`falhou`) são marcados **à mão**. A dependência automática de massa continua,
 mas como regra de **planejamento** (bloqueia mover o dependente e a data anterior), não de execução. As demais
 visões (T13.3 em diante) vêm em seguida, na ordem do [VISOES.md](VISOES.md) §6.
-**Adiadas (não fazer agora):** T7 (Play/Stop, fila, "Verificar ambiente", reexecutar, log ao vivo, leitura do
-Allure, pacote de falha), T8 (incidentes ligados a falhas), T9 (massa) e T10 (lembretes).
+**Antes adiadas, hoje FEITAS (04/10/2026):** T7 (Play/Stop, fila, "Verificar ambiente", reexecutar falhos, log ao vivo, leitura do
+Allure, pacote de falha), T8 (incidentes), T9 (massa) e T10 (lembretes). A frase "SEM EXECUÇÃO" acima vale como histórico.
 Visões e uso em equipe: **T13** inteira (ordem em [VISOES.md](VISOES.md) §6: T13.1 → T13.2 → T13.3 → resto).
 Como a ferramenta terá várias pessoas, **D5 (sem login, só 127.0.0.1) é substituída** pela seção 2 de
 [VISOES.md](VISOES.md): servidor compartilhado na rede, seletor "Você", `versao` por registro.
-Atualização de massa: **T9 adiada** (a ferramenta não grava na planilha por enquanto).
+Atualização de massa: **T9 feita** (04/10/2026): é a única parte que grava em `data/`, com diff, confirmação e backup.
 
 ## 8. Fora de escopo (de propósito)
 

@@ -30,7 +30,7 @@ Antes (D5 do PLANO.md): uma pessoa, `127.0.0.1`, sem login. Com equipe:
 | Quem sou eu | cadastro de **Pessoas** (`dados/pessoas.json`); seletor `Você: [Ana ▾]` no topo, sem senha, lembrado no navegador |
 | Autoria | toda alteração grava `por: <pessoa>` e hora; aparece no histórico do teste/INC e nos avisos |
 | Servidor | **local** (decisão de 03/10/2026): roda nesta máquina em `127.0.0.1` (porta 3100/3101), sem deploy. Dividir na rede (`PUPPETS_HOST=0.0.0.0`) fica como opção futura, desligada por padrão |
-| Execução | **adiada** (decisão de 02/10/2026): por enquanto a ferramenta só planeja e visualiza; nenhum teste é executado por ela |
+| Execução | **feita** (T7, 04/10/2026; era adiada pela decisão de 02/10): Play/Stop no servidor, um por vez, resultado do Allure volta ao plano |
 | Edição ao mesmo tempo | cada registro tem `versao`; salvar com versão antiga mostra "alguém alterou, recarregar/sobrescrever" |
 | Atualização | a tela consulta a cada 5 s (ou SSE) e mostra `Online: Ana, Bia`; mudanças de outros viram aviso curto |
 | Entrada | tela inicial só com o botão **Entrar**, **sem senha por enquanto** (decisão do usuário); a ferramenta não usa `data/` |
@@ -89,7 +89,7 @@ só por a massa se repetir.
 
 | Item | Situação |
 |---|---|
-| T9 Atualizar massa e modal M8 | adiados |
+| T9 Atualizar massa e modal M8 | feitos (04/10/2026) |
 | M10 "Massa em conflito" e o selo `!` | **removidos**: massa repetida é proposital (um teste específico reaproveita a massa de outro), não é erro. Vira a marca neutra `=` "massa compartilhada" + `dependeDe` |
 | Release, critérios de massa | "Massa atualizada" (T9) e "Sem massa em conflito" foram trocados por "Dependências de massa respeitadas" e "Todos os testes com responsável e estimativa"; continua com 7 critérios |
 | "Sincronizar", leitor do `.xlsx` (T1 antiga) e colunas de planejamento na `TBL_CENARIOS` | cancelados |
@@ -108,7 +108,7 @@ colunas ainda vazias. A ferramenta nova **não mexe** nessa tela nem na planilha
 | `estimativaMin` | item do plano | inteiro (minutos) | qualquer pessoa | V0 V6 V7 |
 | `tempoRealMin`, `restanteMin` | item do plano | inteiros (min); real = tempo gasto, **informado à mão** (opcional); restante = estimativa − real | qualquer pessoa | V6 V7 |
 | `dependeDe` | item do plano | lista de `idCenario`, **calculada automaticamente** a partir do mesmo `idMassa` (ordem padrão = numeração do ID); só se edita numa exceção | sistema | V1 (bloqueia mover), V2/V7 (datas) |
-| `runId` | execução | **adiado** junto com a execução | — | — |
+| `runId` | execução | feito (T7; só na memória do servidor) | — | — |
 | `dataPlanejada` | item do plano | data ISO | arrastar no Roadmap/Planejamento | V1 V2 V7 |
 | `versao` | todo registro | inteiro, +1 a cada gravação | sistema | edição simultânea |
 | `severidade` | INC | `alta` · `media` · `baixa` | quem registra | V3 V4 |
@@ -186,7 +186,7 @@ Padrões visuais já usados no Admin: cartões `bg-volt-surface/80` com borda `w
 | `Executando` | cyan `#00E5FF` |
 | `A iniciar` | cinza-verde `#b9cbbc` |
 | `Standby` | amarelo `#FFD700` |
-| `Na fila` | (adiado com a execução) |
+| `Na fila` | estado da execução (não do item); badge no ▶/■ |
 | `Bloqueado` | rosa `#FF5C8D` |
 | Prioridade P1 · P2 · P3 | rosa `#FF5C8D` · amarelo `#FFD700` · cinza-verde `#b9cbbc` |
 | Severidade Alta · Média · Baixa | erro `#ffb4ab` · amarelo `#FFD700` · lime `#A2FF00` |

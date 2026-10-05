@@ -9,7 +9,9 @@ import type { Retro } from '../src/retros/clienteRetros';
 import type { Lembrete } from '../src/lembretes/clienteLembretes';
 import { CRIADO, item, json, pessoa, resumir, type Chamada, type Rota } from './apiFalsaBase';
 import { criarRotaIncidentes } from './apiFalsaIncidentes';
+import { criarRotaExecucoes } from './apiFalsaExecucoes';
 import { criarRotaLembretes } from './apiFalsaLembretes';
+import type { ChecagemAmbiente, Run } from '../src/execucao/clienteExecucoes';
 import { criarRotaRetros } from './apiFalsaRetros';
 
 // Os dados de exemplo e os tipos continuam saindo daqui, para os testes importarem tudo de um lugar só.
@@ -43,6 +45,10 @@ interface Opcoes {
   presenca?: string[];
   /** Faz o POST de "marcar como lida" responder 500. */
   lembretesRecusados?: boolean;
+  /** Execuções que já existem no servidor falso (Play cria uma nova "rodando"; nada roda de verdade). */
+  execucoes?: Run[];
+  /** O que "Verificar ambiente" devolve. */
+  ambiente?: ChecagemAmbiente[];
 }
 
 /** Servidor em memória: responde como a API real nas rotas de planos e cenários. */
@@ -77,6 +83,7 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
   const rotaIncidentes = criarRotaIncidentes(opcoes.incidentes ?? []);
   const rotaRetros = criarRotaRetros(opcoes.retros ?? [], achar, () => sequencia++);
   const rotaLembretes = criarRotaLembretes(opcoes.lembretes ?? [], opcoes.lembretesRecusados);
+  const rotaExecucoes = criarRotaExecucoes(opcoes.execucoes ?? [], opcoes.ambiente);
 
   const falso = vi.fn(async (entrada: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(entrada), 'http://local');
@@ -115,6 +122,8 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
     }
 
     if (partes[1] === 'lembretes') return rotaLembretes(rota);
+
+    if (partes[1] === 'execucoes') return rotaExecucoes(rota);
 
     if (partes[1] === 'retros') return rotaRetros(rota);
 

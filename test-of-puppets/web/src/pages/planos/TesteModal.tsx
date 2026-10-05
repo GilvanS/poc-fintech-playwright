@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { ErroApi } from '../cenarios/clienteApi.ts';
 import { formatarCpf } from '../cenarios/massa.ts';
+import AtualizarMassa from '../../massa/AtualizarMassa.tsx';
 import {
   historicoDoTeste,
   ROTULO_STATUS,
@@ -308,6 +309,7 @@ export default function TesteModal({ planoNome, itens, idAtual, onTrocar, onSalv
                   <Leitura titulo="CPF">
                     <span className="font-mono">{formatarCpf(item.cpf)}</span>
                     <div className="text-[11px] text-on-surface-variant">CPF fictício de massa de teste (não é dado real)</div>
+                    {item.status === 'concluido' && <AtualizarMassa cpf={item.cpf} idCenario={item.idCenario} />}
                   </Leitura>
                 )}
                 <Leitura titulo="Passos">{item.passos ?? '-'}</Leitura>
