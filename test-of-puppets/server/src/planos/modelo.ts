@@ -225,6 +225,18 @@ export function validarLote(entrada: unknown): Validacao<{ idCenarios: string[];
   return { ok: true, valor: { idCenarios, campos } };
 }
 
+/** Mover testes para outro plano: os IDs (do plano da URL) e o id do plano de destino. */
+export function validarMover(entrada: unknown): Validacao<{ idCenarios: string[]; paraPlano: string }> {
+  if (!ehObjeto(entrada)) return { ok: false, mensagens: [MSG_OBJETO] };
+  const mensagens: string[] = [];
+  const idCenarios = listaDeIds(entrada.idCenarios, mensagens);
+  if (idCenarios && idCenarios.length === 0 && mensagens.length === 0) mensagens.push('Informe ao menos um cenário.');
+  const paraPlano = typeof entrada.paraPlano === 'string' ? entrada.paraPlano.trim() : '';
+  if (!paraPlano) mensagens.push('Informe o plano de destino (paraPlano).');
+  if (mensagens.length > 0 || !idCenarios) return { ok: false, mensagens };
+  return { ok: true, valor: { idCenarios, paraPlano } };
+}
+
 /** Ordem completa dos testes do plano. Repetidos e faltantes quem confere é o servidor (ordem_desatualizada). */
 export function validarOrdem(entrada: unknown): Validacao<{ ordem: string[] }> {
   if (!ehObjeto(entrada)) return { ok: false, mensagens: [MSG_OBJETO] };

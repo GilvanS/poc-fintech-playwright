@@ -13,7 +13,10 @@ export type CodigoErro =
   | 'pessoa_em_uso'
   | 'ja_tem_dados'
   | 'retro_fechada'
-  | 'retro_indisponivel';
+  | 'retro_indisponivel'
+  | 'teste_iniciado'
+  | 'ja_no_plano'
+  | 'plano_concluido';
 
 /** Status HTTP de cada erro esperado do dia a dia. Qualquer outro erro vira 500. */
 export const STATUS_POR_ERRO: Record<CodigoErro, number> = {
@@ -32,6 +35,9 @@ export const STATUS_POR_ERRO: Record<CodigoErro, number> = {
   ja_tem_dados: 409,
   retro_fechada: 409,
   retro_indisponivel: 409,
+  teste_iniciado: 409,
+  ja_no_plano: 409,
+  plano_concluido: 409,
 };
 
 export class ErroNegocio extends Error {

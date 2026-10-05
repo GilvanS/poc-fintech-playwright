@@ -8,6 +8,11 @@ interface Props {
   quantidade: number;
   /** "Remover do plano" só vale para testes que ainda não começaram. */
   podeRemover: boolean;
+  /** "Mover para plano" vale para os mesmos testes (ainda não iniciados). */
+  podeMover: boolean;
+  /** Planos que podem receber os testes: os outros que ainda estão em execução. */
+  destinos: { id: string; nome: string }[];
+  onMover: (idPlano: string) => void;
   /** Só traz os campos escolhidos; `null` limpa o campo nos testes marcados. */
   onAplicar: (campos: Pick<CamposItem, 'responsavel' | 'prioridade'>) => void;
   onRemover: () => void;
@@ -18,10 +23,11 @@ const campo =
   'rounded-lg border border-white/10 bg-volt-page px-2 py-1.5 text-xs text-on-surface outline-none focus:border-volt-green/50';
 
 /** Barra que aparece quando há testes marcados na lista (V0): atribuir, prioridade e remover do plano. */
-export default function BarraLote({ quantidade, podeRemover, onAplicar, onRemover, onLimpar }: Props) {
+export default function BarraLote({ quantidade, podeRemover, podeMover, destinos, onMover, onAplicar, onRemover, onLimpar }: Props) {
   const { ativas } = usePessoas();
   const [responsavel, setResponsavel] = useState('');
   const [prioridade, setPrioridade] = useState('');
+  const [destino, setDestino] = useState('');
 
   const aplicar = () => {
     const campos: Pick<CamposItem, 'responsavel' | 'prioridade'> = {};
@@ -65,6 +71,32 @@ export default function BarraLote({ quantidade, podeRemover, onAplicar, onRemove
       >
         Aplicar
       </button>
+      {podeMover && (
+        <div className="flex items-end gap-2">
+          <label className="flex flex-col gap-1 font-bold text-on-surface-variant">
+            Mover para plano
+            <select value={destino} onChange={(e) => setDestino(e.target.value)} disabled={destinos.length === 0} className={`${campo} disabled:opacity-50`}>
+              <option value="">{destinos.length === 0 ? 'Nenhum outro plano em execução' : 'Escolha…'}</option>
+              {destinos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              onMover(destino);
+              setDestino('');
+            }}
+            disabled={!destino}
+            className="px-4 py-2 rounded-xl border border-volt-green/40 bg-volt-green/10 text-volt-green font-black hover:bg-volt-green/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            Mover
+          </button>
+        </div>
+      )}
       {podeRemover && (
         <button type="button" onClick={onRemover} className="px-4 py-2 rounded-xl border border-neon-error/40 bg-neon-error/20 text-neon-error font-black hover:bg-neon-error/30 cursor-pointer">
           Remover do plano

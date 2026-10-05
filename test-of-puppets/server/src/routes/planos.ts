@@ -5,6 +5,7 @@ import {
   validarEdicaoPlano,
   validarIdCenarios,
   validarLote,
+  validarMover,
   validarNovoPlano,
   validarOrdem,
   validarPatchItem,
@@ -73,6 +74,15 @@ export function rotasPlanos(repo: RepoPlanos): Router {
       return;
     }
     res.json(await repo.alterarLote(String(req.params.id), validado.valor.idCenarios, validado.valor.campos));
+  });
+
+  rotas.post('/:id/mover', async (req, res) => {
+    const validado = validarMover(req.body);
+    if (!validado.ok) {
+      res.status(400).json(recusar(validado.mensagens));
+      return;
+    }
+    res.json(await repo.moverTestes(String(req.params.id), validado.valor.idCenarios, validado.valor.paraPlano));
   });
 
   rotas.put('/:id/ordem', async (req, res) => {

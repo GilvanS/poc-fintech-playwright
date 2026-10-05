@@ -144,6 +144,9 @@ export const alterarLote = (id: string, idCenarios: string[], campos: Pick<Campo
 /** Registra a decisão do Release; `criterios` são os não cumpridos agora. Devolve o plano com o histórico atualizado. */
 export const registrarDecisao = (id: string, entrada: { decisao: TipoDecisao; justificativa: string; por: string; criterios: number[] }) =>
   pedir<DetalhePlano>('POST', `${base(id)}/decisoes`, entrada);
+/** Tira os testes (ainda não iniciados) deste plano e põe no plano de destino; tudo ou nada. */
+export const moverTestes = (id: string, idCenarios: string[], paraPlano: string) =>
+  pedir<{ origem: DetalhePlano; movidos: string[] }>('POST', `${base(id)}/mover`, { idCenarios, paraPlano });
 export const definirOrdem =(id: string, ordem: string[]) => pedir<DetalhePlano>('PUT', `${base(id)}/ordem`, { ordem });
 export const historicoDoTeste = (idCenario: string) =>
   pedir<{ planos: HistoricoDoTeste[] }>('GET', `/api/cenarios/${encodeURIComponent(idCenario)}/planos`).then((r) => r.planos);

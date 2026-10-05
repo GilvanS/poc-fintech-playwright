@@ -7,6 +7,7 @@ import { alterarTeste, listarPlanos, obterPlano, type DetalhePlano } from '../pl
 import { hojeISO } from '../planos/datas.ts';
 import PlanoDetalhe from '../planos/PlanoDetalhe.tsx';
 import { segundaDa, somarDias } from '../roadmap/linhaDoTempo.ts';
+import EquipeCapacidadeModal from './EquipeCapacidadeModal.tsx';
 import GradeSemana from './GradeSemana.tsx';
 import {
   backlog,
@@ -26,7 +27,7 @@ import {
 interface Props {
   /** Data de "hoje" (aaaa-mm-dd); só os testes passam isto. */
   hoje?: string;
-  /** Leva à tela Equipe, onde a capacidade de cada pessoa é editada. */
+  /** Leva à tela Equipe (o link "Abrir a tela Equipe" do modal M12 "Equipe e capacidade"). */
   onIrParaEquipe: () => void;
 }
 
@@ -52,7 +53,8 @@ const mensagemDe = (e: unknown) => (e instanceof ErroApi ? e.message : 'Erro ine
 export default function Planejamento({ hoje: hojeProp, onIrParaEquipe }: Props) {
   const hoje = hojeProp ?? hojeISO();
   const { rotulo, icone: Icone } = itemPorChave('planejamento');
-  const { pessoas, nome } = usePessoas();
+  const { pessoas, nome, recarregar: recarregarEquipe } = usePessoas();
+  const [equipeAberta, setEquipeAberta] = useState(false);
   const [inicio, setInicio] = useState(() => segundaDa(hoje));
   const [fimDeSemana, setFimDeSemana] = useState(false);
   const [planoSel, setPlanoSel] = useState('');
@@ -158,7 +160,7 @@ export default function Planejamento({ hoje: hojeProp, onIrParaEquipe }: Props) 
           {rotulo}
         </h2>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={onIrParaEquipe} className={botao}>
+          <button type="button" onClick={() => setEquipeAberta(true)} className={botao}>
             <Settings2 size={16} aria-hidden />
             Equipe e capacidade
           </button>
@@ -338,6 +340,18 @@ export default function Planejamento({ hoje: hojeProp, onIrParaEquipe }: Props) 
       )}
 
       {aberto && <PlanoDetalhe key={`${aberto.planoId}:${aberto.idCenario}`} id={aberto.planoId} testeInicial={aberto.idCenario} onFechar={fecharDetalhe} onMudou={() => void carregar()} />}
+
+      {equipeAberta && (
+        <EquipeCapacidadeModal
+          pessoas={pessoas}
+          onSalvo={recarregarEquipe}
+          onAbrirEquipe={() => {
+            setEquipeAberta(false);
+            onIrParaEquipe();
+          }}
+          onFechar={() => setEquipeAberta(false)}
+        />
+      )}
     </section>
   );
 }

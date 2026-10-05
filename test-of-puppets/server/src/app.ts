@@ -4,7 +4,9 @@ import { criarRepos, DADOS_PADRAO } from './repos.ts';
 import { rotasCenarios } from './routes/cenarios.ts';
 import { rotasConfig } from './routes/config.ts';
 import { rotasIncidentes } from './routes/incidentes.ts';
+import { criarPresenca } from './presenca/presenca.ts';
 import { rotasLembretes } from './routes/lembretes.ts';
+import { rotasPresenca } from './routes/presenca.ts';
 import { rotasRetros } from './routes/retros.ts';
 import { rotasPessoas } from './routes/pessoas.ts';
 import { rotasPlanos } from './routes/planos.ts';
@@ -58,6 +60,7 @@ export function createApp({ dirDados = DADOS_PADRAO, modoTeste = false }: Opcoes
   app.use('/api/incidentes', rotasIncidentes(repos.incidentes));
   app.use('/api/retros', rotasRetros(repos.retros));
   app.use('/api/lembretes', rotasLembretes(repos));
+  app.use('/api/presenca', rotasPresenca(criarPresenca()));
   app.use('/api/semente', rotasSemente(repos));
   if (modoTeste) app.use('/api/teste', rotasTeste(dirDados, repos));
 

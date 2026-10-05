@@ -54,6 +54,11 @@ export interface RepoPlanos {
   alterarLote(id: string, idCenarios: string[], campos: Pick<CamposItem, 'responsavel' | 'prioridade'>): Promise<DetalhePlano>;
   /** Nomes dos planos em que a pessoa é responsável por algum teste (impede excluí-la da Equipe). */
   planosComResponsavel(idPessoa: string): Promise<string[]>;
+  /**
+   * Tira os testes deste plano e põe no plano de destino, numa só gravação (tudo ou nada). Só vale para testes ainda
+   * não iniciados (agendados); eles chegam ao fim do destino com responsável, prioridade, estimativa, data e observações.
+   */
+  moverTestes(idOrigem: string, idCenarios: string[], idDestino: string): Promise<{ origem: DetalhePlano; movidos: string[] }>;
   /** Define a ordem de execução (posição 1..n). Precisa conter exatamente os testes do plano. */
   reordenar(id: string, ordem: string[]): Promise<DetalhePlano>;
   alterarItem(id: string, idCenario: string, versao: number, campos: CamposItem): Promise<ItemVisao>;
@@ -268,6 +273,45 @@ export function criarRepoPlanos(caminho: string, { catalogo, agora = () => new D
         const novo: Plano = { ...atual, itens: atual.itens.map((i) => (escolhidos.has(i.idCenario) ? aplicarPatch(i, campos, instante) : i)) };
         await gravar(substituir(arquivo, novo));
         return detalhe(novo);
+      });
+    },
+
+    moverTestes(idOrigem, idCenarios, idDestino) {
+      return emFila(async () => {
+        const arquivo = await ler();
+        const origem = achar(arquivo, idOrigem);
+        const destino = achar(arquivo, idDestino);
+        if (origem.id === destino.id) throw new ErroNegocio('ja_no_plano', 'O plano de destino é o mesmo plano de origem.');
+
+        const escolhidos = new Set(idCenarios);
+        const fora = idCenarios.filter((c) => !origem.itens.some((i) => i.idCenario === c));
+        if (fora.length > 0) throw new ErroNegocio('nao_encontrado', `Teste(s) fora do plano ${origem.nome}: ${fora.join(', ')}.`);
+        // Na ordem em que estão no plano de origem.
+        const movendo = origem.itens.filter((i) => escolhidos.has(i.idCenario)).sort((a, b) => a.posicao - b.posicao);
+
+        const iniciados = movendo.filter((i) => i.status !== 'agendado').map((i) => i.idCenario);
+        if (iniciados.length > 0) {
+          throw new ErroNegocio('teste_iniciado', `Só testes ainda não iniciados mudam de plano: ${iniciados.join(', ')} já começou.`);
+        }
+        const repetidos = movendo.filter((i) => destino.itens.some((d) => d.idCenario === i.idCenario)).map((i) => i.idCenario);
+        if (repetidos.length > 0) throw new ErroNegocio('ja_no_plano', `Já está no plano ${destino.nome}: ${repetidos.join(', ')}.`);
+        if (resumir(destino).executado) {
+          throw new ErroNegocio('plano_concluido', `O plano ${destino.nome} já foi concluído: escolha um plano em execução.`);
+        }
+
+        const deps = dependencias(await catalogo());
+        const instante = agora().toISOString();
+        const itensDestino = [...destino.itens];
+        for (const original of movendo) {
+          const conflito = conflitoDeData(original.idCenario, original.dataPlanejada, itensDestino, deps);
+          if (conflito) throw new ErroNegocio('data_antes_da_dependencia', conflito);
+          itensDestino.push({ ...original, status: 'agendado', posicao: proximaPosicao(itensDestino), versao: 1, atualizadoEm: instante });
+        }
+
+        const novaOrigem: Plano = { ...origem, itens: origem.itens.filter((i) => !escolhidos.has(i.idCenario)) };
+        const novoDestino: Plano = { ...destino, itens: itensDestino };
+        await gravar(arquivo.planos.map((p) => (p.id === origem.id ? novaOrigem : p.id === destino.id ? novoDestino : p)));
+        return { origem: await detalhe(novaOrigem), movidos: movendo.map((i) => i.idCenario) };
       });
     },
 

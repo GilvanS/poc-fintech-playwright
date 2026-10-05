@@ -9,6 +9,8 @@ import BarraKanban, { type Agrupar } from './BarraKanban.tsx';
 import BarraLote from './BarraLote.tsx';
 import {
   alterarLote,
+  listarPlanos,
+  moverTestes,
   alterarTeste,
   definirOrdem,
   excluirPlano,
@@ -74,6 +76,7 @@ export default function PlanoDetalhe({ id, onFechar, onMudou, hoje, modo = 'moda
   const [incluirAberto, setIncluirAberto] = useState(false);
   const [testeAberto, setTesteAberto] = useState<string | null>(testeInicial ?? null);
   const [confirmar, setConfirmar] = useState<Confirmacao | null>(null);
+  const [destinos, setDestinos] = useState<{ id: string; nome: string }[]>([]);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [wip, setWip] = useState<Wip>(SEM_LIMITES);
   const [agrupar, setAgrupar] = useState<Agrupar>('nenhum');
@@ -109,6 +112,17 @@ export default function PlanoDetalhe({ id, onFechar, onMudou, hoje, modo = 'moda
       vivo = false;
     };
   }, []);
+
+  // Para onde dá para mover testes: os outros planos que ainda estão em execução.
+  useEffect(() => {
+    let vivo = true;
+    listarPlanos()
+      .then((lista) => vivo && setDestinos(Array.isArray(lista) ? lista.filter((p) => p.id !== id && !p.resumo.executado).map((p) => ({ id: p.id, nome: p.nome })) : []))
+      .catch(() => vivo && setDestinos([]));
+    return () => {
+      vivo = false;
+    };
+  }, [id]);
 
   useEffect(() => {
     if (!ehPagina) janela.current?.focus();
@@ -351,6 +365,12 @@ export default function PlanoDetalhe({ id, onFechar, onMudou, hoje, modo = 'moda
                 <BarraLote
                   quantidade={marcados.length}
                   podeRemover={marcados.every((i) => i.status === 'agendado')}
+                  podeMover={marcados.every((i) => i.status === 'agendado')}
+                  destinos={destinos}
+                  onMover={(idDestino) => {
+                    void executar(() => moverTestes(id, marcados.map((i) => i.idCenario), idDestino));
+                    setSelecionados(new Set());
+                  }}
                   onAplicar={(campos) => {
                     void executar(() => alterarLote(id, marcados.map((i) => i.idCenario), campos));
                     setSelecionados(new Set());

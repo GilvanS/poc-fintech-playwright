@@ -3,6 +3,7 @@ import { ArrowLeft, Image as IconeImagem } from 'lucide-react';
 import MatrixDotLoader from '../shared/MatrixDotLoader.tsx';
 import FundoModal from './FundoModal.tsx';
 import Sidebar from './Sidebar.tsx';
+import Online from './Online.tsx';
 import Sino from './Sino.tsx';
 import type { Lembrete } from '../lembretes/clienteLembretes.ts';
 import SeletorVoce from './SeletorVoce.tsx';
@@ -111,6 +112,7 @@ export default function Shell({ ativo, onSelecionar, planos, planoAtivoId, onPla
 
             <div className="flex flex-wrap items-center gap-2">
               <StatusServidor />
+              <Online />
               <select
                 aria-label="Plano"
                 value={planoAtivoId ?? ''}

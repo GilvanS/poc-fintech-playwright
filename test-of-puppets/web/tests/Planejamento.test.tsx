@@ -127,10 +127,14 @@ describe('Planejamento — semana', () => {
     expect(screen.queryByTestId('linha-pessoa-__sem')).toBeNull();
   });
 
-  it('"Equipe e capacidade" leva à tela Equipe', async () => {
+  it('"Equipe e capacidade" abre o modal M12 (sem sair da tela); o link dele leva à tela Equipe', async () => {
     const { ir } = await abrir();
     await userEvent.click(screen.getByRole('button', { name: 'Equipe e capacidade' }));
+    expect(ir).not.toHaveBeenCalled();
+    const modal = screen.getByRole('dialog', { name: 'Equipe e capacidade' });
+    await userEvent.click(within(modal).getByRole('button', { name: 'Abrir a tela Equipe' }));
     expect(ir).toHaveBeenCalled();
+    expect(screen.queryByRole('dialog', { name: 'Equipe e capacidade' })).toBeNull();
   });
 });
 

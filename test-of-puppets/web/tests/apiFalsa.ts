@@ -39,6 +39,8 @@ interface Opcoes {
   retros?: Retro[];
   /** Lembretes do sino que o servidor falso devolve (a conta de "lida" ele faz sozinho). */
   lembretes?: Lembrete[];
+  /** Ids das pessoas que já estão online no servidor falso (quem dá sinal entra na lista). */
+  presenca?: string[];
   /** Faz o POST de "marcar como lida" responder 500. */
   lembretesRecusados?: boolean;
 }
@@ -50,6 +52,7 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
   let visoes = structuredClone(opcoes.visoes ?? []);
   let wip: Wip = { ...SEM_LIMITES, ...opcoes.wip };
   let lembretesLigados: Lembretes = { ...TODOS_LIGADOS };
+  let online: string[] = [...(opcoes.presenca ?? [])];
   const cenarios = opcoes.cenarios ?? [];
   const chamadas: Chamada[] = [];
   let sequencia = 1;
@@ -101,6 +104,14 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
         if (corpo?.lembretes) lembretesLigados = { ...lembretesLigados, ...(corpo.lembretes as Partial<Lembretes>) };
       }
       return json(200, { wip, lembretes: lembretesLigados });
+    }
+
+    if (partes[1] === 'presenca') {
+      if (metodo === 'POST') {
+        const quem = String(corpo?.pessoa ?? '');
+        if (quem && !online.includes(quem)) online = [...online, quem];
+      }
+      return json(200, { online });
     }
 
     if (partes[1] === 'lembretes') return rotaLembretes(rota);
@@ -268,6 +279,23 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
       return json(201, novo);
     }
 
+    if (partes[3] === 'mover' && metodo === 'POST') {
+      const destino = achar(String(corpo?.paraPlano ?? ''));
+      if (!destino) return json(404, { erro: 'nao_encontrado', mensagem: `Plano ${String(corpo?.paraPlano)} não encontrado.` });
+      const escolhidos = new Set((corpo?.idCenarios as string[] | undefined) ?? []);
+      const movendo = atual.itens.filter((i) => escolhidos.has(i.idCenario));
+      const iniciados = movendo.filter((i) => i.status !== 'agendado').map((i) => i.idCenario);
+      if (iniciados.length > 0) {
+        return json(409, { erro: 'teste_iniciado', mensagem: `Só testes ainda não iniciados mudam de plano: ${iniciados.join(', ')} já começou.` });
+      }
+      const repetidos = movendo.filter((i) => destino.itens.some((d) => d.idCenario === i.idCenario)).map((i) => i.idCenario);
+      if (repetidos.length > 0) return json(409, { erro: 'ja_no_plano', mensagem: `Já está no plano ${destino.plano.nome}: ${repetidos.join(', ')}.` });
+      const base = destino.itens.reduce((maior, i) => Math.max(maior, i.posicao), 0);
+      salvar({ ...destino, itens: [...destino.itens, ...movendo.map((i, k) => ({ ...i, posicao: base + k + 1, versao: 1 }))] });
+      const origem = salvar({ ...atual, itens: atual.itens.filter((i) => !escolhidos.has(i.idCenario)) });
+      return json(200, { origem, movidos: movendo.map((i) => i.idCenario) });
+    }
+
     if (partes[3] === 'ordem' && metodo === 'PUT') {
       if (opcoes.recusarOrdem) {
         return json(409, { erro: 'ordem_invalida', mensagem: 'CT03.2 precisa ficar antes de CT03.7: usam a mesma massa e CT03.2 roda primeiro.' });
@@ -339,7 +367,8 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
   return {
     falso,
     chamadas,
-    escritas: () => chamadas.filter((c) => c.metodo !== 'GET'),
+    // O batimento da presença (POST a cada 5 s) não é uma alteração de dados: fica de fora.
+    escritas: () => chamadas.filter((c) => c.metodo !== 'GET' && !c.caminho.startsWith('/api/presenca')),
     estado: () => planos,
   };
 }

@@ -22,6 +22,7 @@ import type { Lembrete } from './lembretes/clienteLembretes.ts';
 import { LembretesProvider } from './lembretes/ContextoLembretes.tsx';
 import Incidentes from './pages/incidentes/Incidentes.tsx';
 import { PessoasProvider, usePessoas } from './pessoas/ContextoPessoas.tsx';
+import { PresencaProvider } from './presenca/ContextoPresenca.tsx';
 import Shell from './shell/Shell.tsx';
 import { jaEntrou, registrarEntrada } from './shell/entrada.ts';
 import { gravarFundo, lerFundo, type ConfigFundo } from './shell/fundo.ts';
@@ -276,7 +277,9 @@ export default function App() {
       {entrou ? (
         <IncidentesProvider>
           <LembretesProvider>
-            <Logado fundo={fundo} onFundo={setFundo} />
+            <PresencaProvider>
+              <Logado fundo={fundo} onFundo={setFundo} />
+            </PresencaProvider>
           </LembretesProvider>
         </IncidentesProvider>
       ) : (
