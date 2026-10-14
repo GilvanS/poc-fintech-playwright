@@ -579,13 +579,20 @@ Execuções (1)
 > e `PainelTela` (botão **Voltar** + caminho "Planos › Detalhe do plano"; `largura` `cheia` ou `form` centralizada). A página de trás
 > fica escondida (não desmonta: filtros e rolagem voltam como estavam); com mais de um painel aberto (teste sobre o plano) só o
 > último aparece. Mantém `role="dialog"` e o nome acessível de cada janela. **Viraram tela cheia:** Detalhe do plano (vindo de Planos),
-> Detalhe do teste, Incluir testes, Ordem, Novo plano, Cenário, Nova visão, Equipe e capacidade, Registrar/Vincular INC, painel do INC,
-> Decisão do Release, Ação da Retro e Pessoa. **Continuam popup (pequenos):** confirmações, "Registrar resultado" do cronômetro,
-> Limites de WIP e Fundo.
+> Incluir testes, Ordem, Novo plano, Cenário, Nova visão, Equipe e capacidade, Registrar/Vincular INC, painel do INC,
+> Decisão do Release, Ação da Retro e Pessoa. **Continuam popup:** o **Detalhe do teste** (exceção pedida em 05/10/2026, no molde do
+> Test Manager: abas Geral/Cenário e Datas/Histórico, Passos, Resultado esperado, Dependência e Observações com alça para esticar),
+> confirmações, "Registrar resultado" do cronômetro, Limites de WIP e Fundo.
+>
+> **Regra dos popups:** todo `fixed inset-0` passa por `shared/Sobreposicao.tsx`, que monta no `<body>`. Dentro de um elemento com
+> `backdrop-blur` (cards de vidro do Kanban, região do plano, `Secao`) o `fixed` deixa de ser relativo à tela e o popup aparece
+> preso, cortado e fora do centro; o jsdom não enxerga isso, então confira no navegador.
 
 ### UI-2 — Menu lateral em trilho de ícones (05/10/2026) — ✔ FEITA
 
-> Trilho estreito (56 px) como padrão, círculo verde no ativo, dica ao passar o mouse; menu aberto mais compacto. Preferência `puppets:shell:v2`.
+> Trilho estreito (56 px) como padrão, esticado até o fim da janela e fixo ao rolar; círculo verde no ativo, dica ao passar o mouse; menu
+> aberto mais compacto. **Hierárquico:** cada grupo (Planos & Testes, Planejamento, Qualidade, Minhas visões, Massa & Sistema) tem ícone +
+> seta, e as sub-opções descem na mesma coluna (sem popup por cima da tela). Preferência `puppets:shell:v2`.
 
 ### UI-3 — Kanban no estilo do exemplo (05/10/2026) — ✔ FEITO
 
