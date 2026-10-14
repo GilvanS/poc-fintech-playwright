@@ -22,9 +22,9 @@ const quebrado = {
 };
 
 describe('preferências do shell', () => {
-  it('sem nada salvo, o menu fica à esquerda e expandido', () => {
-    expect(lerPreferencias(memoria())).toEqual({ lado: 'esquerda', recolhido: false });
-    expect(PADRAO_SHELL).toEqual({ lado: 'esquerda', recolhido: false });
+  it('sem nada salvo, o menu fica à esquerda e recolhido (trilho de ícones)', () => {
+    expect(lerPreferencias(memoria())).toEqual({ lado: 'esquerda', recolhido: true });
+    expect(PADRAO_SHELL).toEqual({ lado: 'esquerda', recolhido: true });
   });
 
   it('lê o que foi salvo', () => {
@@ -41,7 +41,7 @@ describe('preferências do shell', () => {
     expect(lerPreferencias(armazem)).toEqual({ lado: 'esquerda', recolhido: true });
 
     const outro = memoria(JSON.stringify({ lado: 'direita', recolhido: 'sim' }));
-    expect(lerPreferencias(outro)).toEqual({ lado: 'direita', recolhido: false });
+    expect(lerPreferencias(outro)).toEqual({ lado: 'direita', recolhido: true });
   });
 
   it('não lança se o navegador bloquear a leitura', () => {

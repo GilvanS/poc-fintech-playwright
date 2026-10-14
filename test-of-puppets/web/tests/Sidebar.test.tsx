@@ -76,13 +76,24 @@ describe('Sidebar (menu lateral)', () => {
     expect(within(within(aside).getByRole('button', { name: 'Cenários e massa' })).queryByText('!')).toBeNull();
   });
 
-  it('recolhido: some o texto, mas o nome continua acessível e o título do grupo vira "·"', () => {
-    const { aside } = montar({ recolhido: true });
+  it('recolhido (trilho): só ícones, nome acessível, sem títulos de grupo e o ativo é um círculo preenchido', () => {
+    const { aside } = montar({ recolhido: true, ativo: 'kanban' });
     expect(aside).toHaveAttribute('data-recolhido', 'true');
     expect(within(aside).queryByText('Kanban')).toBeNull();
-    expect(within(aside).getByRole('button', { name: 'Kanban' })).toHaveAttribute('title', 'Kanban');
     expect(within(aside).queryByText('Qualidade')).toBeNull();
-    expect(within(aside).getAllByText('·')).toHaveLength(5);
+    expect(within(aside).queryByText('·')).toBeNull();
+    expect(within(aside).getByRole('button', { name: 'Kanban' })).toHaveClass('bg-volt-green', 'rounded-full');
+    expect(within(aside).getByRole('button', { name: 'Lista' })).not.toHaveClass('bg-volt-green');
+  });
+
+  it('recolhido: o nome aparece numa dica ao passar o mouse e some ao sair; o selo continua no ícone', async () => {
+    const { aside } = montar({ recolhido: true, selos: { incidentes: '3' } });
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    await userEvent.hover(within(aside).getByRole('button', { name: 'Release' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Release');
+    await userEvent.unhover(within(aside).getByRole('button', { name: 'Release' }));
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    expect(within(within(aside).getByRole('button', { name: 'Incidentes' })).getByText('3')).toBeInTheDocument();
   });
 
   it('o botão de recolher muda de nome conforme o estado e avisa o clique', async () => {

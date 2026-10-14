@@ -5,8 +5,9 @@ export interface PreferenciasShell {
   recolhido: boolean;
 }
 
-export const CHAVE_SHELL = 'puppets:shell';
-export const PADRAO_SHELL: PreferenciasShell = { lado: 'esquerda', recolhido: false };
+// v2 (05/10/2026): o menu passou a abrir como trilho de ícones; a chave nova faz quem tinha o menu aberto ver o trilho uma vez.
+export const CHAVE_SHELL = 'puppets:shell:v2';
+export const PADRAO_SHELL: PreferenciasShell = { lado: 'esquerda', recolhido: true };
 
 type Leitura = Pick<Storage, 'getItem'>;
 type Escrita = Pick<Storage, 'setItem'>;

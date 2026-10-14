@@ -96,21 +96,26 @@ describe('App — shell visual', () => {
     await userEvent.click(within(menu()).getByRole('button', { name: 'Mover menu para a direita' }));
     expect(screen.getByTestId('shell')).toHaveAttribute('data-lado', 'direita');
     expect(menu().compareDocumentPosition(screen.getByRole('main')) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
-    expect(JSON.parse(window.localStorage.getItem('puppets:shell')!)).toMatchObject({ lado: 'direita' });
+    expect(JSON.parse(window.localStorage.getItem('puppets:shell:v2')!)).toMatchObject({ lado: 'direita' });
 
     unmount();
     render(<App />);
     expect(screen.getByTestId('shell')).toHaveAttribute('data-lado', 'direita');
   });
 
-  it('recolher o menu mostra só os ícones e lembra a escolha', async () => {
+  it('o menu abre como trilho só de ícones; expandir mostra os nomes, lembra a escolha e dá para recolher de novo', async () => {
     const { unmount } = await entrar();
-    await userEvent.click(within(menu()).getByRole('button', { name: 'Recolher menu' }));
     expect(menu()).toHaveAttribute('data-recolhido', 'true');
     expect(within(menu()).queryByText('Kanban')).toBeNull();
 
+    await userEvent.click(within(menu()).getByRole('button', { name: 'Expandir menu' }));
+    expect(menu()).toHaveAttribute('data-recolhido', 'false');
+    expect(within(menu()).getByText('Kanban')).toBeInTheDocument();
+
     unmount();
     render(<App />);
+    expect(menu()).toHaveAttribute('data-recolhido', 'false');
+    await userEvent.click(within(menu()).getByRole('button', { name: 'Recolher menu' }));
     expect(menu()).toHaveAttribute('data-recolhido', 'true');
   });
 
