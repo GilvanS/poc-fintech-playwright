@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import Sobreposicao from '../shared/Sobreposicao.tsx';
 import type { EntradaFinalizar, ItemPlano, Resultado } from '../pages/planos/clientePlanos.ts';
 
 interface Props {
@@ -21,17 +22,22 @@ export default function FinalizarModal({ item, minutosSugeridos, onRegistrar, on
   const [salvando, setSalvando] = useState(false);
   const janela = useRef<HTMLDivElement>(null);
 
+  // O foco vai para a janela só ao abrir. (Antes ficava junto do Esc e rodava de novo a cada re-render do relógio do pai,
+  // tirando o foco do campo no meio da digitação.)
+  useEffect(() => janela.current?.focus(), []);
+
+  // O Esc fecha só este modal (captura na window: o detalhe do plano, por baixo, não recebe o mesmo Esc).
+  const fechar = useRef(onFechar);
+  fechar.current = onFechar;
   useEffect(() => {
-    janela.current?.focus();
-    // O Esc fecha só este modal (captura na window: o detalhe do plano, por baixo, não recebe o mesmo Esc).
     const aoTeclar = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       e.stopPropagation();
-      onFechar();
+      fechar.current();
     };
     window.addEventListener('keydown', aoTeclar, true);
     return () => window.removeEventListener('keydown', aoTeclar, true);
-  }, [onFechar]);
+  }, []);
 
   const registrar = async () => {
     const n = Number(minutos);
@@ -44,6 +50,7 @@ export default function FinalizarModal({ item, minutosSugeridos, onRegistrar, on
   };
 
   return (
+    <Sobreposicao>
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
       <div
         ref={janela}
@@ -102,5 +109,6 @@ export default function FinalizarModal({ item, minutosSugeridos, onRegistrar, on
         </div>
       </div>
     </div>
+    </Sobreposicao>
   );
 }

@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { configure, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { decorridoMs, formatarDecorrido, minutosMedidos } from '../src/cronometro/tempo';
 import PlanoDetalhe from '../src/pages/planos/PlanoDetalhe';
 import { criarApiFalsa, item, plano } from './apiFalsa';
 
 // O cronômetro não executa nada: ▶ marca o início, ⏸ pausa, ■ pede o resultado e o tempo.
+
+// Com a máquina carregada (suíte inteira) o servidor falso + releitura do plano passam de 1 s: folga para os findBy.
+configure({ asyncUtilTimeout: 6_000 });
 
 const ct31 = () => item('CT03.1', { nome: 'Pagar valor total', idMassa: '0100' });
 const ct32 = () => item('CT03.2', { nome: 'Pagar valor mínimo', idMassa: '0483' });

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, GripVertical, ListOrdered, Lock, X } from 'lucide-react';
 import { ErroApi } from '../cenarios/clienteApi.ts';
+import { PainelTela } from '../../shared/PainelTela.tsx';
 import type { ItemPlano } from './clientePlanos.ts';
 import { corrigir, mover, ordenarPor, regraDoItem, violacoes } from './ordem.ts';
 
@@ -67,15 +68,8 @@ export default function OrdemModal({ planoNome, itens, onSalvar, onFechar }: Pro
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div
-        ref={janela}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Ordem de execução"
-        tabIndex={-1}
-        className="w-full max-w-3xl max-h-[92vh] flex flex-col rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface outline-none"
-      >
+    <PainelTela titulo="Ordem de execução" trilha="Planos › Ordem de execução" onFechar={onFechar}>
+      <div ref={janela} tabIndex={-1} className="flex flex-col outline-none">
         <div className="flex items-center justify-between p-5 pb-3">
           <div className="flex items-center gap-2 font-black uppercase text-sm">
             <ListOrdered size={18} className="text-volt-green" aria-hidden />
@@ -222,6 +216,6 @@ export default function OrdemModal({ planoNome, itens, onSalvar, onFechar }: Pro
           </div>
         </div>
       </div>
-    </div>
+    </PainelTela>
   );
 }

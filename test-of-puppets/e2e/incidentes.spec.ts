@@ -64,7 +64,7 @@ test('Tela Incidentes: selo no menu, quadro, status, painel (editar e comentar) 
 
   await abrirApp(page);
   await page.getByRole('combobox', { name: 'Você' }).selectOption('ana');
-  await expect(menu(page).getByRole('button', { name: 'Incidentes' })).toContainText('2'); // 2 abertos (o 3º está resolvido)
+  await expect(menu(page).getByRole('button', { name: 'Grupo Qualidade' })).toContainText('2'); // 2 abertos (o 3º está resolvido); o selo fica no ícone do grupo
   await irPara(page, 'Incidentes');
   await expect(page.getByRole('heading', { level: 2, name: 'Incidentes' })).toBeVisible();
   await expect(page.getByTestId('resumo-inc')).toContainText('abertos 2');

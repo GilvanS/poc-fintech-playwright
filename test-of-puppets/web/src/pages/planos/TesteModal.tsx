@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { ErroApi } from '../cenarios/clienteApi.ts';
 import { formatarCpf } from '../cenarios/massa.ts';
+import Sobreposicao from '../../shared/Sobreposicao.tsx';
 import {
   historicoDoTeste,
   ROTULO_STATUS,
@@ -83,6 +84,16 @@ function Leitura({ titulo, children }: { titulo: string; children: ReactNode }) 
     <div>
       <span className={rotulo}>{titulo}</span>
       <div className="text-sm">{children}</div>
+    </div>
+  );
+}
+
+/** Texto longo só para ler (passos, resultado esperado...): caixa que a pessoa estica pela alça do canto. */
+function LeituraLonga({ titulo, texto, linhas = 3 }: { titulo: string; texto: string; linhas?: number }) {
+  return (
+    <div>
+      <span className={rotulo}>{titulo}</span>
+      <textarea readOnly aria-label={titulo} rows={linhas} value={texto} className={`${campo} resize-y cursor-default`} />
     </div>
   );
 }
@@ -173,6 +184,7 @@ export default function TesteModal({ planoNome, itens, idAtual, onTrocar, onSalv
   ];
 
   return (
+    <Sobreposicao>
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
       <div
         ref={janela}
@@ -180,7 +192,7 @@ export default function TesteModal({ planoNome, itens, idAtual, onTrocar, onSalv
         aria-modal="true"
         aria-label="Detalhe do teste"
         tabIndex={-1}
-        className="w-full max-w-3xl max-h-[92vh] flex flex-col rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface outline-none"
+        className="w-full max-w-3xl max-h-[90vh] flex flex-col rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface outline-none"
       >
         <div className="flex items-start justify-between gap-4 p-5 pb-3">
           <div className="min-w-0">
@@ -228,9 +240,16 @@ export default function TesteModal({ planoNome, itens, idAtual, onTrocar, onSalv
           ))}
         </div>
 
-        <div className="px-5 pt-4 pb-1 overflow-y-auto">
+        <div className="px-5 pt-4 pb-1 overflow-y-auto overflow-x-hidden min-h-0 [color-scheme:dark]">
           {aba === 'geral' && (
             <div className="grid gap-3 sm:grid-cols-2">
+              <Leitura titulo="ID Teste">
+                <span className="font-mono">{item.idCenario}</span>
+              </Leitura>
+              <Leitura titulo="Funcionalidade">{item.funcionalidade ?? '-'}</Leitura>
+              <div className="sm:col-span-2">
+                <Leitura titulo="Cenário de Teste">{item.nome ?? '-'}</Leitura>
+              </div>
               <div>
                 <label htmlFor="tst-status" className={rotulo}>Status</label>
                 <select id="tst-status" value={rascunho.status} onChange={(e) => mudar({ status: e.target.value as Status })} className={campo}>
@@ -310,11 +329,13 @@ export default function TesteModal({ planoNome, itens, idAtual, onTrocar, onSalv
                     <div className="text-[11px] text-on-surface-variant">CPF fictício de massa de teste (não é dado real)</div>
                   </Leitura>
                 )}
-                <Leitura titulo="Passos">{item.passos ?? '-'}</Leitura>
-                <Leitura titulo="Resultado esperado">{item.resultadoEsperado ?? '-'}</Leitura>
-                <Leitura titulo="Dependência (automática)">
-                  {item.dependeDe.length > 0 ? `Depois de ${item.dependeDe.join(', ')} (mesma massa)` : 'Nenhuma'}
-                </Leitura>
+                <LeituraLonga titulo="Passos" texto={item.passos ?? '-'} linhas={4} />
+                <LeituraLonga titulo="Resultado esperado" texto={item.resultadoEsperado ?? '-'} linhas={4} />
+                <LeituraLonga
+                  titulo="Dependência (automática)"
+                  texto={item.dependeDe.length > 0 ? `Depois de ${item.dependeDe.join(', ')} (mesma massa)` : 'Nenhuma'}
+                  linhas={2}
+                />
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
@@ -328,7 +349,7 @@ export default function TesteModal({ planoNome, itens, idAtual, onTrocar, onSalv
               </div>
               <div>
                 <label htmlFor="tst-obs" className={rotulo}>Observações</label>
-                <textarea id="tst-obs" rows={3} value={rascunho.observacoes} onChange={(e) => mudar({ observacoes: e.target.value })} className={campo} />
+                <textarea id="tst-obs" rows={3} value={rascunho.observacoes} onChange={(e) => mudar({ observacoes: e.target.value })} className={`${campo} resize-y`} />
               </div>
             </div>
           )}
@@ -418,5 +439,6 @@ export default function TesteModal({ planoNome, itens, idAtual, onTrocar, onSalv
         </div>
       </div>
     </div>
+    </Sobreposicao>
   );
 }

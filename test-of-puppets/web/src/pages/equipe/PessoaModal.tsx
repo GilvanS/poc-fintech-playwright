@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { UserRound, X } from 'lucide-react';
 import { ErroApi } from '../cenarios/clienteApi.ts';
 import { CORES, type CamposPessoa, type Cor, type Pessoa } from '../../pessoas/clientePessoas.ts';
+import { PainelTela } from '../../shared/PainelTela.tsx';
 
 interface Props {
   /** Ausente = cadastro novo. */
@@ -55,14 +56,8 @@ export default function PessoaModal({ pessoa, onSalvar, onFechar }: Props) {
   const titulo = edicao ? `Editar ${pessoa.nome}` : 'Nova pessoa';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <form
-        role="dialog"
-        aria-modal="true"
-        aria-label={titulo}
-        onSubmit={enviar}
-        className="w-full max-w-md p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface"
-      >
+    <PainelTela titulo={titulo} largura="form" onFechar={onFechar}>
+      <form onSubmit={enviar} className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 font-black uppercase text-sm">
             <UserRound size={18} className="text-volt-green" aria-hidden /> {titulo}
@@ -118,6 +113,6 @@ export default function PessoaModal({ pessoa, onSalvar, onFechar }: Props) {
           </div>
         </div>
       </form>
-    </div>
+    </PainelTela>
   );
 }

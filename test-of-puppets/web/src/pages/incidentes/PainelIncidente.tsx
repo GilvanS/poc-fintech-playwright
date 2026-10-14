@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
+import Sobreposicao from '../../shared/Sobreposicao.tsx';
 import SeletorTestes from '../../incidentes/SeletorTestes.tsx';
 import {
   comentarIncidente,
@@ -17,6 +18,7 @@ import { usePessoas } from '../../pessoas/ContextoPessoas.tsx';
 import { ErroApi } from '../cenarios/clienteApi.ts';
 import { formatarData } from '../planos/datas.ts';
 import { dataHora, textoDoHistorico } from './calculoIncidentes.ts';
+import { PainelTela } from '../../shared/PainelTela.tsx';
 
 interface Props {
   inc: Incidente;
@@ -108,8 +110,9 @@ export default function PainelIncidente({ inc, opcoesTestes, onMudou, onFechar }
   const historico = useMemo(() => [...inc.historico].reverse(), [inc.historico]);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" onMouseDown={(e) => e.target === e.currentTarget && onFechar()}>
-      <aside role="dialog" aria-modal="true" aria-label={`Detalhe do ${inc.numero}`} className="h-full w-full max-w-xl overflow-y-auto border-l border-white/10 bg-[#1a1a1a] p-6 text-on-surface">
+    <>
+      <PainelTela titulo={`Detalhe do ${inc.numero}`} trilha={`Incidentes › ${inc.numero}`} largura="form" onFechar={onFechar}>
+        <div className="p-6">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
             <h2 className="font-mono text-lg font-black text-volt-green">{inc.numero}</h2>
@@ -213,9 +216,11 @@ export default function PainelIncidente({ inc, opcoesTestes, onMudou, onFechar }
             </button>
           </div>
         </div>
-      </aside>
+        </div>
+      </PainelTela>
 
       {confirmarExcluir && (
+        <Sobreposicao>
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70">
           <div role="alertdialog" aria-modal="true" aria-label="Confirmar exclusão" className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#1a1a1a] p-6 text-on-surface">
             <p className="text-sm font-bold">{`Excluir o ${inc.numero}?`}</p>
@@ -230,7 +235,8 @@ export default function PainelIncidente({ inc, opcoesTestes, onMudou, onFechar }
             </div>
           </div>
         </div>
+        </Sobreposicao>
       )}
-    </div>
+    </>
   );
 }

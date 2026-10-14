@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Settings2, X } from 'lucide-react';
+import Sobreposicao from '../../shared/Sobreposicao.tsx';
 import type { Wip } from '../../config/clienteConfig.ts';
 import { ErroApi } from '../cenarios/clienteApi.ts';
 import { ROTULO_STATUS, type Status } from './clientePlanos.ts';
@@ -55,6 +56,7 @@ export default function LimitesWipModal({ wip, onSalvar, onFechar }: Props) {
   };
 
   return (
+    <Sobreposicao>
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
       <form
         role="dialog"
@@ -122,5 +124,6 @@ export default function LimitesWipModal({ wip, onSalvar, onFechar }: Props) {
         </div>
       </form>
     </div>
+    </Sobreposicao>
   );
 }

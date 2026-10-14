@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ClipboardList, X } from 'lucide-react';
 import { ErroApi, listarCenarios, type CenarioVisao } from '../cenarios/clienteApi.ts';
+import { PainelTela } from '../../shared/PainelTela.tsx';
 import type { NovoPlano, PlanoResumido } from './clientePlanos.ts';
 
 interface Props {
@@ -79,14 +80,8 @@ export default function NovoPlanoModal({ planos, onCriar, onFechar }: Props) {
   const total = cenarios?.length ?? 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <form
-        role="dialog"
-        aria-modal="true"
-        aria-label="Novo Plano"
-        onSubmit={enviar}
-        className="w-full max-w-lg max-h-[92vh] overflow-y-auto p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface"
-      >
+    <PainelTela titulo="Novo Plano" trilha="Planos › Novo plano" largura="form" onFechar={onFechar}>
+      <form onSubmit={enviar} className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 font-black uppercase text-sm">
             <ClipboardList size={18} className="text-volt-green" aria-hidden /> Novo Plano
@@ -165,6 +160,6 @@ export default function NovoPlanoModal({ planos, onCriar, onFechar }: Props) {
           </div>
         </div>
       </form>
-    </div>
+    </PainelTela>
   );
 }

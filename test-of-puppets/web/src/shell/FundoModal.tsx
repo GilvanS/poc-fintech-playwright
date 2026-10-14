@@ -16,14 +16,20 @@ export default function FundoModal({ config, onChange, onFechar }: Props) {
   const [erro, setErro] = useState('');
   const janela = useRef<HTMLDivElement>(null);
 
+  // Foco só ao abrir (junto do Esc ele rodava a cada re-render do pai e tirava o foco do campo).
   useEffect(() => {
     janela.current?.focus();
+  }, []);
+
+  const fechar = useRef(onFechar);
+  fechar.current = onFechar;
+  useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onFechar();
+      if (e.key === 'Escape') fechar.current();
     };
     document.addEventListener('keydown', aoTeclar);
     return () => document.removeEventListener('keydown', aoTeclar);
-  }, [onFechar]);
+  }, []);
 
   const usarEndereco = () => {
     const valor = endereco.trim();

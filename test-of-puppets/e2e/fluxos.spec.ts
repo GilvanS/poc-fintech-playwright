@@ -78,6 +78,8 @@ test('regra da massa na prática: o CT03.7 só anda depois que o CT03.2 passou',
 
 test('kanban: arrastar o card muda o status e fica gravado', async ({ page, request }) => {
   await resetar(request, true);
+  // Os cards são maiores e o plano abre em tela cheia: janela alta para origem e destino do arraste ficarem à vista (sem rolar no meio).
+  await page.setViewportSize({ width: 1280, height: 1800 });
   await abrirApp(page);
   const detalhe = await abrirPlano(page, '28/09/26');
   await detalhe.getByRole('tab', { name: 'Visão card' }).click();
@@ -133,6 +135,10 @@ test('detalhe do teste: CPF fictício inteiro com aviso, observação salva e hi
   await teste.getByRole('tab', { name: 'Cenário e Datas' }).click();
   await expect(teste.getByLabel('Observações')).toHaveValue('rodar de manhã');
   await expect(teste.getByRole('tab', { name: /^Histórico \(\d+\)$/ })).toBeVisible();
+  // O detalhe do teste é um popup por cima do plano; "Fechar" só some com o popup e o plano continua ali.
+  await expect(detalhe).toBeVisible();
+  await teste.getByRole('button', { name: 'Fechar' }).click();
+  await expect(teste).toHaveCount(0);
   await expect(detalhe).toBeVisible();
 });
 

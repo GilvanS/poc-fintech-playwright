@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, GripVertical, RefreshCw, Settings2 } from 'lucide-react';
+import Sobreposicao from '../../shared/Sobreposicao.tsx';
 import { usePessoas } from '../../pessoas/ContextoPessoas.tsx';
 import { itemPorChave } from '../../shell/menu.ts';
 import { ErroApi } from '../cenarios/clienteApi.ts';
@@ -313,6 +314,7 @@ export default function Planejamento({ hoje: hojeProp, onIrParaEquipe }: Props) 
       )}
 
       {excedeu && (
+        <Sobreposicao>
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div role="alertdialog" aria-modal="true" aria-label="Capacidade excedida" className="w-full max-w-md p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface">
             <h3 className="text-sm font-black uppercase tracking-wide">Capacidade excedida</h3>
@@ -337,6 +339,7 @@ export default function Planejamento({ hoje: hojeProp, onIrParaEquipe }: Props) 
             </div>
           </div>
         </div>
+        </Sobreposicao>
       )}
 
       {aberto && <PlanoDetalhe key={`${aberto.planoId}:${aberto.idCenario}`} id={aberto.planoId} testeInicial={aberto.idCenario} onFechar={fecharDetalhe} onMudou={() => void carregar()} />}

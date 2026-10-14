@@ -572,6 +572,26 @@ Execuções (1)
  28/09/26  [A iniciar]   -      -               -             -
 ```
 
+### UI-1 — Janelas grandes viram tela cheia dentro da área de conteúdo (05/10/2026) — ✔ FEITA
+
+> **Pedido do usuário:** popups grandes (como o "Detalhe do plano") são ruins; as janelas com formulário longo passam a abrir **dentro
+> da tela**, no lugar da página, com o menu e o cabeçalho sempre à vista. `web/src/shared/PainelTela.tsx`: `AreaDePaineis` (no Shell)
+> e `PainelTela` (botão **Voltar** + caminho "Planos › Detalhe do plano"; `largura` `cheia` ou `form` centralizada). A página de trás
+> fica escondida (não desmonta: filtros e rolagem voltam como estavam); com mais de um painel aberto (teste sobre o plano) só o
+> último aparece. Mantém `role="dialog"` e o nome acessível de cada janela. **Viraram tela cheia:** Detalhe do plano (vindo de Planos),
+> Detalhe do teste, Incluir testes, Ordem, Novo plano, Cenário, Nova visão, Equipe e capacidade, Registrar/Vincular INC, painel do INC,
+> Decisão do Release, Ação da Retro e Pessoa. **Continuam popup (pequenos):** confirmações, "Registrar resultado" do cronômetro,
+> Limites de WIP e Fundo.
+
+### UI-2 — Menu lateral em trilho de ícones (05/10/2026) — ✔ FEITA
+
+> Trilho estreito (56 px) como padrão, círculo verde no ativo, dica ao passar o mouse; menu aberto mais compacto. Preferência `puppets:shell:v2`.
+
+### UI-3 — Kanban no estilo do exemplo (05/10/2026) — ✔ FEITO
+
+> Colunas de vidro com tom do status (cinza-verde, cyan, amarelo, verde), ponto de cor + contagem em pílula (o texto "Em andamento (2/3)"
+> continua para leitores de tela); cards com chip de funcionalidade, prioridade (cores P1/P2/P3), data ("Hoje" verde, atrasada vermelha,
+> senão "5 out"), massa, INC, bloqueio, avatar do responsável e o "Mover para". Código: `CartaoKanban.tsx`, `Kanban.tsx`.
 ### T7 — Cronômetro do teste: ▶ iniciar, ⏸ pausar, ■ registrar (P) — ✔ FEITA (05/10/2026)
 
 > **Esclarecimento do usuário em 05/10/2026:** a ferramenta é só para **acompanhar e organizar** (sem depender do Excel no futuro). **Não

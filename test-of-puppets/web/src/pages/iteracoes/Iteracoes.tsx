@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GripVertical, Plus, RefreshCw } from 'lucide-react';
+import Sobreposicao from '../../shared/Sobreposicao.tsx';
 import { usePessoas } from '../../pessoas/ContextoPessoas.tsx';
 import { itemPorChave } from '../../shell/menu.ts';
 import { ErroApi, listarCenarios, type CenarioVisao } from '../cenarios/clienteApi.ts';
@@ -339,6 +340,7 @@ export default function Iteracoes({ hoje: hojeProp, onIrParaPlanos }: Props) {
       )}
 
       {confirmar && (
+        <Sobreposicao>
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div role="alertdialog" aria-modal="true" aria-label="Aumentar o escopo" className="w-full max-w-sm p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface">
             <p className="text-sm font-bold">{`Adicionar à iteração em andamento aumenta o escopo (+${confirmar.item.estimativaMin ?? 0} min).`}</p>
@@ -353,6 +355,7 @@ export default function Iteracoes({ hoje: hojeProp, onIrParaPlanos }: Props) {
             </div>
           </div>
         </div>
+        </Sobreposicao>
       )}
 
       {aberto && <PlanoDetalhe key={aberto} id={aberto} onFechar={() => setAberto(null)} onMudou={() => void carregar()} />}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { FileText, X } from 'lucide-react';
 import { ErroApi, type CenarioEntrada, type CenarioVisao } from './clienteApi.ts';
 import { formatarCpf, massaCompartilhada } from './massa.ts';
+import { PainelTela } from '../../shared/PainelTela.tsx';
 
 interface Props {
   /** Ausente = cadastro novo; presente = edição (o ID fica travado). */
@@ -31,14 +32,20 @@ export default function CenarioModal({ cenario, cenarios, funcionalidades, onSal
   const primeiroCampo = useRef<HTMLInputElement>(null);
   const campoNome = useRef<HTMLInputElement>(null);
 
+  // Foco só ao abrir: se ficasse junto do Esc, qualquer re-render do pai tirava o foco do campo no meio da digitação.
   useEffect(() => {
     (edicao ? campoNome : primeiroCampo).current?.focus();
+  }, [edicao]);
+
+  const fechar = useRef(onFechar);
+  fechar.current = onFechar;
+  useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onFechar();
+      if (e.key === 'Escape') fechar.current();
     };
     document.addEventListener('keydown', aoTeclar);
     return () => document.removeEventListener('keydown', aoTeclar);
-  }, [edicao, onFechar]);
+  }, []);
 
   const { usadaPor, dependeDe } = massaCompartilhada(cenarios, idMassa, idCenario.trim());
 
@@ -67,14 +74,8 @@ export default function CenarioModal({ cenario, cenarios, funcionalidades, onSal
   const titulo = edicao ? `Editar cenário ${cenario.idCenario}` : 'Novo cenário';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <form
-        role="dialog"
-        aria-modal="true"
-        aria-label={titulo}
-        onSubmit={enviar}
-        className="w-full max-w-xl max-h-[92vh] overflow-y-auto p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface"
-      >
+    <PainelTela titulo={titulo} largura="form" onFechar={onFechar}>
+      <form onSubmit={enviar} className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 font-black uppercase text-sm">
             <FileText size={18} className="text-volt-green" aria-hidden /> {titulo}
@@ -175,6 +176,6 @@ export default function CenarioModal({ cenario, cenarios, funcionalidades, onSal
           </div>
         </div>
       </form>
-    </div>
+    </PainelTela>
   );
 }

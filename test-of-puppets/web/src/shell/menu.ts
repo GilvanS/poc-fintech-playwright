@@ -2,11 +2,15 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Bookmark,
   Bug,
+  CalendarClock,
   CalendarDays,
   CalendarRange,
   ClipboardList,
   Columns3,
+  Database,
   FileText,
+  FolderKanban,
+  Layers,
   LayoutGrid,
   List,
   MessagesSquare,
@@ -14,6 +18,7 @@ import {
   Repeat,
   Rocket,
   Settings,
+  ShieldCheck,
   Users,
 } from 'lucide-react';
 
@@ -53,6 +58,8 @@ export interface ItemMenu {
 
 export interface GrupoMenu {
   titulo: string;
+  /** Ícone do grupo (a linha que abre e fecha as sub-opções). */
+  icone: LucideIcon;
   itens: ItemMenu[];
 }
 
@@ -60,6 +67,7 @@ export interface GrupoMenu {
 export const GRUPOS: GrupoMenu[] = [
   {
     titulo: 'Planos & Testes',
+    icone: FolderKanban,
     itens: [
       { chave: 'planos', rotulo: 'Planos', icone: ClipboardList, tarefa: 'T4' },
       { chave: 'lista', rotulo: 'Lista', icone: List, tarefa: 'T5' },
@@ -68,6 +76,7 @@ export const GRUPOS: GrupoMenu[] = [
   },
   {
     titulo: 'Planejamento',
+    icone: CalendarClock,
     itens: [
       { chave: 'roadmap', rotulo: 'Roadmap', icone: CalendarRange, tarefa: 'T13.6' },
       { chave: 'iteracoes', rotulo: 'Iterações', icone: Repeat, tarefa: 'T13.9' },
@@ -76,6 +85,7 @@ export const GRUPOS: GrupoMenu[] = [
   },
   {
     titulo: 'Qualidade',
+    icone: ShieldCheck,
     itens: [
       { chave: 'incidentes', rotulo: 'Incidentes', icone: Bug, tarefa: 'T13.5' },
       { chave: 'release', rotulo: 'Release', icone: Rocket, tarefa: 'T13.7' },
@@ -85,11 +95,13 @@ export const GRUPOS: GrupoMenu[] = [
   },
   {
     titulo: 'Minhas visões',
+    icone: Layers,
     // As visões salvas entram antes de "Nova visão" (ver `gruposComVisoes`).
     itens: [{ chave: 'nova-visao', rotulo: 'Nova visão', icone: Plus, tarefa: 'T13.3' }],
   },
   {
     titulo: 'Massa & Sistema',
+    icone: Database,
     itens: [
       { chave: 'cenarios', rotulo: 'Cenários e massa', icone: FileText, tarefa: 'T1' },
       { chave: 'equipe', rotulo: 'Equipe', icone: Users, tarefa: 'T13.1' },

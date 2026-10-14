@@ -4,6 +4,7 @@ import type { Pessoa } from '../../pessoas/clientePessoas.ts';
 import { ErroApi } from '../cenarios/clienteApi.ts';
 import type { TipoDecisao } from '../planos/clientePlanos.ts';
 import { cumpridos, listarCriterios, naoAtendidos, ROTULO_DECISAO, TOTAL_CRITERIOS, type Criterio } from './calculoRelease.ts';
+import { PainelTela } from '../../shared/PainelTela.tsx';
 
 export interface EntradaDecisao {
   decisao: TipoDecisao;
@@ -76,14 +77,8 @@ export default function DecisaoModal({ planoNome, criterios, pessoas, voce, agor
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <form
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Decisão do release — Plano ${planoNome}`}
-        onSubmit={enviar}
-        className="w-full max-w-lg p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface"
-      >
+    <PainelTela titulo={`Decisão do release — Plano ${planoNome}`} largura="form" onFechar={onFechar}>
+      <form onSubmit={enviar} className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 font-black uppercase text-sm">
             <Gavel size={18} className="text-volt-green" aria-hidden /> {`Decisão do release — Plano ${planoNome}`}
@@ -166,6 +161,6 @@ export default function DecisaoModal({ planoNome, criterios, pessoas, voce, agor
           </div>
         </div>
       </form>
-    </div>
+    </PainelTela>
   );
 }

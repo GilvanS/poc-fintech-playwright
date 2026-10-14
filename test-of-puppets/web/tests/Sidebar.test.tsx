@@ -76,24 +76,69 @@ describe('Sidebar (menu lateral)', () => {
     expect(within(within(aside).getByRole('button', { name: 'Cenários e massa' })).queryByText('!')).toBeNull();
   });
 
-  it('recolhido (trilho): só ícones, nome acessível, sem títulos de grupo e o ativo é um círculo preenchido', () => {
+  const painelDe = (aside: HTMLElement, grupo: string) => within(aside).getByRole('group', { name: `Sub-opções de ${grupo}` });
+
+  it('recolhido (trilho): um ícone por grupo; o grupo da tela ativa vem aberto, com as sub-opções descendo na própria coluna', () => {
     const { aside } = montar({ recolhido: true, ativo: 'kanban' });
     expect(aside).toHaveAttribute('data-recolhido', 'true');
-    expect(within(aside).queryByText('Kanban')).toBeNull();
-    expect(within(aside).queryByText('Qualidade')).toBeNull();
-    expect(within(aside).queryByText('·')).toBeNull();
+    expect(within(aside).getByRole('button', { name: 'Grupo Planos & Testes' })).toHaveAttribute('aria-expanded', 'true');
+    expect(painelDe(aside, 'Planos & Testes')).not.toHaveClass('hidden');
+    for (const grupo of ['Planejamento', 'Qualidade', 'Minhas visões', 'Massa & Sistema']) {
+      expect(within(aside).getByRole('button', { name: `Grupo ${grupo}` })).toHaveAttribute('aria-expanded', 'false');
+      expect(painelDe(aside, grupo)).toHaveClass('hidden');
+    }
+    // A sub-opção da tela ativa é o círculo verde; as outras ficam sem fundo.
     expect(within(aside).getByRole('button', { name: 'Kanban' })).toHaveClass('bg-volt-green', 'rounded-full');
     expect(within(aside).getByRole('button', { name: 'Lista' })).not.toHaveClass('bg-volt-green');
+    expect(aside.querySelector('.fixed')).toBeNull(); // nada abre por cima da tela
   });
 
-  it('recolhido: o nome aparece numa dica ao passar o mouse e some ao sair; o selo continua no ícone', async () => {
+  it('recolhido: o ícone do grupo abre e fecha as sub-opções na coluna; escolher uma avisa a chave e o grupo continua aberto', async () => {
+    const { aside, props } = montar({ recolhido: true });
+    const qualidade = within(aside).getByRole('button', { name: 'Grupo Qualidade' });
+    await userEvent.click(qualidade);
+    expect(qualidade).toHaveAttribute('aria-expanded', 'true');
+    expect(painelDe(aside, 'Qualidade')).not.toHaveClass('hidden');
+    expect(painelDe(aside, 'Planos & Testes')).not.toHaveClass('hidden'); // abrir um grupo não fecha os outros
+
+    await userEvent.click(within(painelDe(aside, 'Qualidade')).getByRole('button', { name: 'Release' }));
+    expect(props.onSelecionar).toHaveBeenCalledWith('release');
+    expect(painelDe(aside, 'Qualidade')).not.toHaveClass('hidden');
+
+    await userEvent.click(qualidade);
+    expect(painelDe(aside, 'Qualidade')).toHaveClass('hidden');
+  });
+
+  it('recolhido: o nome aparece numa dica ao passar o mouse (grupo e sub-opção); o selo dos INC fica no grupo fechado e no ícone quando aberto', async () => {
     const { aside } = montar({ recolhido: true, selos: { incidentes: '3' } });
     expect(screen.queryByRole('tooltip')).toBeNull();
-    await userEvent.hover(within(aside).getByRole('button', { name: 'Release' }));
-    expect(screen.getByRole('tooltip')).toHaveTextContent('Release');
-    await userEvent.unhover(within(aside).getByRole('button', { name: 'Release' }));
+    const grupo = within(aside).getByRole('button', { name: 'Grupo Qualidade' });
+    expect(within(grupo).getByText('3')).toBeInTheDocument(); // fechado: o selo vai no ícone do grupo
+    await userEvent.hover(grupo);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Qualidade');
+    await userEvent.unhover(grupo);
     expect(screen.queryByRole('tooltip')).toBeNull();
-    expect(within(within(aside).getByRole('button', { name: 'Incidentes' })).getByText('3')).toBeInTheDocument();
+
+    await userEvent.click(grupo); // aberto: o selo passa para o ícone de Incidentes
+    expect(within(grupo).queryByText('3')).toBeNull();
+    const incidentes = within(painelDe(aside, 'Qualidade')).getByRole('button', { name: 'Incidentes' });
+    expect(within(incidentes).getByText('3')).toBeInTheDocument();
+    await userEvent.hover(incidentes);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Incidentes');
+  });
+
+  it('menu aberto: o grupo da tela ativa vem aberto, a seta abre e fecha os outros e a sub-opção ativa leva o sublinhado', async () => {
+    const { aside } = montar({ ativo: 'release' });
+    const qualidade = within(aside).getByRole('button', { name: 'Grupo Qualidade' });
+    const planejamento = within(aside).getByRole('button', { name: 'Grupo Planejamento' });
+    expect(qualidade).toHaveAttribute('aria-expanded', 'true');
+    expect(planejamento).toHaveAttribute('aria-expanded', 'false');
+    expect(within(aside).getByRole('button', { name: 'Release' })).toHaveClass('border-volt-green');
+
+    await userEvent.click(planejamento);
+    expect(planejamento).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(qualidade);
+    expect(qualidade).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('o botão de recolher muda de nome conforme o estado e avisa o clique', async () => {

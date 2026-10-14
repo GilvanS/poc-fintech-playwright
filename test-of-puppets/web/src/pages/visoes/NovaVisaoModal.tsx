@@ -4,6 +4,7 @@ import { usePessoas } from '../../pessoas/ContextoPessoas.tsx';
 import { ErroApi, listarCenarios } from '../cenarios/clienteApi.ts';
 import { SEM_VALOR } from '../planos/filtros.ts';
 import type { NovaVisao, TipoVisao } from '../../visoes/clienteVisoes.ts';
+import { PainelTela } from '../../shared/PainelTela.tsx';
 
 interface Props {
   onCriar: (entrada: NovaVisao) => Promise<void>;
@@ -87,14 +88,8 @@ export default function NovaVisaoModal({ onCriar, onFechar }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <form
-        role="dialog"
-        aria-modal="true"
-        aria-label="Nova visão"
-        onSubmit={enviar}
-        className="w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface"
-      >
+    <PainelTela titulo="Nova visão" largura="form" onFechar={onFechar}>
+      <form onSubmit={enviar} className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 font-black uppercase text-sm">
             <Bookmark size={18} className="text-volt-green" aria-hidden /> Nova visão
@@ -206,6 +201,6 @@ export default function NovaVisaoModal({ onCriar, onFechar }: Props) {
           </div>
         </div>
       </form>
-    </div>
+    </PainelTela>
   );
 }

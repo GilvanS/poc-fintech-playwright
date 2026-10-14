@@ -19,8 +19,10 @@ const recusar = (res: Response, mensagens: string[]): void => {
   res.status(400).json({ erro: 'validacao', mensagens });
 };
 
-/** Data local de hoje (aaaa-mm-dd), no relógio do servidor. */
+/** Data local de hoje (aaaa-mm-dd), no relógio do servidor. `PUPPETS_HOJE` fixa a data (só o E2E usa, com a semente de datas fixas). */
 function hojeLocal(agora = new Date()): string {
+  const fixa = process.env.PUPPETS_HOJE;
+  if (fixa && /^\d{4}-\d{2}-\d{2}$/.test(fixa)) return fixa;
   return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
 }
 

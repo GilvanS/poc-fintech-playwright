@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
+import Sobreposicao from '../shared/Sobreposicao.tsx';
 import { usePessoas } from '../pessoas/ContextoPessoas.tsx';
 import { ErroApi } from '../pages/cenarios/clienteApi.ts';
 import type { ItemPlano } from '../pages/planos/clientePlanos.ts';
@@ -183,6 +184,7 @@ export default function IncidentesDoPlano({ itens, onAbrirTeste, onCamada }: Pro
         />
       )}
       {desvincular && (
+        <Sobreposicao>
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div role="alertdialog" aria-modal="true" aria-label="Confirmar desvínculo" className="w-full max-w-sm p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface">
             <p className="text-sm font-bold">{`Desvincular ${desvincular.inc.numero} dos testes deste plano (${desvincular.ids.join(', ')})?`}</p>
@@ -197,6 +199,7 @@ export default function IncidentesDoPlano({ itens, onAbrirTeste, onCamada }: Pro
             </div>
           </div>
         </div>
+        </Sobreposicao>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { ListPlus, X } from 'lucide-react';
 import { ErroApi, listarCenarios, type CenarioVisao } from '../cenarios/clienteApi.ts';
+import { PainelTela } from '../../shared/PainelTela.tsx';
 
 interface Props {
   planoNome: string;
@@ -89,16 +90,8 @@ export default function IncluirTestesModal({ planoNome, idsNoPlano, onIncluir, o
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <form
-        ref={janela}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Incluir testes"
-        tabIndex={-1}
-        onSubmit={enviar}
-        className="w-full max-w-3xl max-h-[92vh] flex flex-col rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface outline-none"
-      >
+    <PainelTela titulo="Incluir testes" trilha="Planos › Incluir testes" onFechar={onFechar}>
+      <form ref={janela} tabIndex={-1} onSubmit={enviar} className="flex flex-col outline-none">
         <div className="flex items-center justify-between p-5 pb-3">
           <div className="flex items-center gap-2 font-black uppercase text-sm">
             <ListPlus size={18} className="text-volt-green" aria-hidden />
@@ -209,6 +202,6 @@ export default function IncluirTestesModal({ planoNome, idsNoPlano, onIncluir, o
           </div>
         </div>
       </form>
-    </div>
+    </PainelTela>
   );
 }

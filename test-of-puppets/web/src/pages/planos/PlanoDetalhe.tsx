@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ListOrdered, Plus, X } from 'lucide-react';
+import Sobreposicao from '../../shared/Sobreposicao.tsx';
 import { ErroApi } from '../cenarios/clienteApi.ts';
 import { obterConfig, salvarWip, SEM_LIMITES, type Wip } from '../../config/clienteConfig.ts';
 import { useIncidentes } from '../../incidentes/ContextoIncidentes.tsx';
@@ -29,6 +30,7 @@ import Kanban from './Kanban.tsx';
 import LimitesWipModal from './LimitesWipModal.tsx';
 import ListaTestes from './ListaTestes.tsx';
 import OrdemModal from './OrdemModal.tsx';
+import QuadroPlano from './QuadroPlano.tsx';
 import TesteModal from './TesteModal.tsx';
 import AcoesPendentesAnteriores from '../retro/AcoesPendentesAnteriores.tsx';
 import AvisoCronometro from '../../cronometro/AvisoCronometro.tsx';
@@ -257,19 +259,8 @@ function PlanoDetalheCorpo({ id, onFechar, onMudou, hoje, modo = 'modal', visaoI
   const noIncidentes = visao === 'incidentes';
 
   return (
-    <div className={ehPagina ? 'flex flex-col' : 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm'}>
-      <div
-        ref={janela}
-        role={ehPagina ? 'region' : 'dialog'}
-        aria-modal={ehPagina ? undefined : true}
-        aria-label={ehPagina ? 'Plano' : 'Detalhe do plano'}
-        tabIndex={-1}
-        className={
-          ehPagina
-            ? 'w-full flex flex-col rounded-3xl bg-volt-surface/80 backdrop-blur-sm border border-white/10 text-on-surface outline-none'
-            : 'w-full max-w-5xl max-h-[92vh] flex flex-col rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface outline-none'
-        }
-      >
+    <div className={ehPagina ? 'flex flex-col' : undefined}>
+      <QuadroPlano ehPagina={ehPagina} janela={janela} nomeDoPlano={dados?.plano.nome} onFechar={onFechar}>
         <div className="flex items-start justify-between gap-4 p-5 pb-3">
           <div className="min-w-0">
             <Titulo className="text-lg font-black tracking-tight">{dados ? `Plano: ${dados.plano.nome}` : 'Plano'}</Titulo>
@@ -404,7 +395,7 @@ function PlanoDetalheCorpo({ id, onFechar, onMudou, hoje, modo = 'modal', visaoI
             </div>
           </>
         )}
-      </div>
+      </QuadroPlano>
 
       {ordemAberta && dados && (
         <OrdemModal
@@ -463,6 +454,7 @@ function PlanoDetalheCorpo({ id, onFechar, onMudou, hoje, modo = 'modal', visaoI
       )}
 
       {confirmar && dados && (
+        <Sobreposicao>
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div role="alertdialog" aria-modal="true" aria-label="Confirmar" className="w-full max-w-sm p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface">
             <p className="text-sm font-bold">
@@ -482,6 +474,7 @@ function PlanoDetalheCorpo({ id, onFechar, onMudou, hoje, modo = 'modal', visaoI
             </div>
           </div>
         </div>
+        </Sobreposicao>
       )}
     </div>
   );

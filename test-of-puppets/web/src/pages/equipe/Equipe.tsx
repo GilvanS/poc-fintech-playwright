@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import Sobreposicao from '../../shared/Sobreposicao.tsx';
 import { ErroApi } from '../cenarios/clienteApi.ts';
 import { itemPorChave } from '../../shell/menu.ts';
 import { atualizarPessoa, CLASSE_COR, criarPessoa, excluirPessoa, type CamposPessoa, type Pessoa } from '../../pessoas/clientePessoas.ts';
@@ -141,6 +142,7 @@ export default function Equipe() {
       {modal && <PessoaModal pessoa={modal.modo === 'editar' ? modal.pessoa : undefined} onSalvar={salvar} onFechar={() => setModal(null)} />}
 
       {excluindo && (
+        <Sobreposicao>
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div role="alertdialog" aria-modal="true" aria-label="Confirmar exclusão" className="w-full max-w-sm p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface">
             <p className="text-sm font-bold">{`Excluir ${excluindo.nome} da equipe?`}</p>
@@ -155,6 +157,7 @@ export default function Equipe() {
             </div>
           </div>
         </div>
+        </Sobreposicao>
       )}
     </section>
   );

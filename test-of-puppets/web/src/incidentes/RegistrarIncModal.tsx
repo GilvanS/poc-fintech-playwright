@@ -4,6 +4,7 @@ import { usePessoas } from '../pessoas/ContextoPessoas.tsx';
 import { ErroApi } from '../pages/cenarios/clienteApi.ts';
 import { criarIncidente, ROTULO_SEVERIDADE, SEVERIDADES, type Severidade } from './clienteIncidentes.ts';
 import SeletorTestes from './SeletorTestes.tsx';
+import { PainelTela } from '../shared/PainelTela.tsx';
 
 interface Props {
   /** Os testes do plano aberto, para escolher quais o INC afeta. */
@@ -57,14 +58,8 @@ export default function RegistrarIncModal({ testes, marcadosInicial = [], onRegi
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <form
-        role="dialog"
-        aria-modal="true"
-        aria-label="Registrar INC"
-        onSubmit={enviar}
-        className="w-full max-w-lg max-h-[92vh] overflow-y-auto p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface"
-      >
+    <PainelTela titulo="Registrar INC" largura="form" onFechar={onFechar}>
+      <form onSubmit={enviar} className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 font-black uppercase text-sm">
             <Bug size={18} className="text-volt-green" aria-hidden /> Registrar INC
@@ -132,6 +127,6 @@ export default function RegistrarIncModal({ testes, marcadosInicial = [], onRegi
           </div>
         </div>
       </form>
-    </div>
+    </PainelTela>
   );
 }

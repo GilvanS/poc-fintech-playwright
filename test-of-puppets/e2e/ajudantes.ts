@@ -16,8 +16,15 @@ export async function abrirApp(page: Page): Promise<void> {
   await expect(menu(page)).toBeVisible();
 }
 
+/** Vai para uma tela pelo menu. A sub-opção mora dentro do grupo: com o grupo fechado (trilho ou seta), abre antes. */
 export async function irPara(page: Page, item: string): Promise<void> {
-  await menu(page).getByRole('button', { name: item }).click();
+  const botao = menu(page).getByRole('button', { name: item, exact: true });
+  if (!(await botao.isVisible())) {
+    // `has` é relativo ao grupo: o localizador de dentro não pode partir do menu.
+    const dentro = page.getByRole('button', { name: item, exact: true, includeHidden: true }); // a sub-opção de grupo fechado está escondida
+    await menu(page).locator('[data-grupo]').filter({ has: dentro }).getByRole('button', { name: /^Grupo / }).click();
+  }
+  await botao.click();
 }
 
 /** Abre o detalhe de um plano pelo nome do card. */

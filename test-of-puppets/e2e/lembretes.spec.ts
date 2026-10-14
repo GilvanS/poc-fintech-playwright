@@ -1,13 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { URL_API } from './ambiente.ts';
+import { HOJE_E2E, URL_API } from './ambiente.ts';
 import { abrirApp, resetar } from './ajudantes.ts';
 
 // Sino (T10): os lembretes saem dos dados; só "lida" fica gravado (dados/lembretes.json), por pessoa.
 
-const hojeLocal = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
+// O servidor de teste vive em HOJE_E2E (PUPPETS_HOJE): a semente tem datas fixas e não pode depender do dia em que o teste roda.
+const hojeLocal = () => HOJE_E2E;
 
 test('Sino: teste de hoje aparece, marcar como lida persiste por pessoa, abrir leva à tela e marcar todas zera', async ({ page, request }) => {
   await resetar(request, true);

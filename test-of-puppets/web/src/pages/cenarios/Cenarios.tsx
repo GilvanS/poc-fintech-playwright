@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import Sobreposicao from '../../shared/Sobreposicao.tsx';
 import { itemPorChave } from '../../shell/menu.ts';
 import CenarioModal from './CenarioModal.tsx';
 import { formatarCpf } from './massa.ts';
@@ -210,6 +211,7 @@ export default function Cenarios() {
       )}
 
       {excluindo && (
+        <Sobreposicao>
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div
             role="alertdialog"
@@ -230,6 +232,7 @@ export default function Cenarios() {
             </div>
           </div>
         </div>
+        </Sobreposicao>
       )}
     </section>
   );

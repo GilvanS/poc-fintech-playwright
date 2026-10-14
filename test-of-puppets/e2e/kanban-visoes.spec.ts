@@ -31,7 +31,8 @@ test('visão salva: cria pelo M11, aparece no menu com os filtros, sobrevive a r
   expect(comAna.visoes).toHaveLength(1);
 
   await page.reload();
-  await expect(menu(page).getByRole('button', { name: 'Só Faturas P1' })).toBeVisible();
+  await menu(page).getByRole('button', { name: 'Grupo Minhas visões' }).click(); // a visão mora dentro do grupo
+  await expect(menu(page).getByRole('button', { name: 'Só Faturas P1', exact: true })).toBeVisible();
   await irPara(page, 'Só Faturas P1');
   await expect(page.getByLabel('Prioridade')).toHaveValue('P1');
 

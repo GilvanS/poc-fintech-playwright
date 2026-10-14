@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import Sobreposicao from '../../shared/Sobreposicao.tsx';
 import { SEM_LIMITES, type Wip } from '../../config/clienteConfig.ts';
 import { usePessoas } from '../../pessoas/ContextoPessoas.tsx';
 import type { Agrupar } from './BarraKanban.tsx';
@@ -35,6 +36,9 @@ interface Pendente {
 }
 
 const SEM_DONO = '__sem';
+
+/** Cor de cada coluna (paleta confirmada): A iniciar cinza-verde, Em andamento cyan, Refinamento amarelo, Concluído verde. */
+const COR_STATUS: Record<Status, string> = { agendado: '#b9cbbc', em_andamento: '#00E5FF', refinamento: '#FFD700', concluido: '#00ff9d' };
 
 /**
  * Visão card (kanban): uma coluna por status, ou uma raia por responsável. Arrastar o card só muda status
@@ -97,21 +101,31 @@ export default function Kanban({ itens, todos = itens, wip = SEM_LIMITES, agrupa
     ];
   }, [ativas, itens, nome]);
 
-  const titulo = (status: Status) => {
+  /** "2" (sem limite) ou "2/3" (com limite de WIP). */
+  const contagem = (status: Status) => {
     const limite = wip[status];
-    const visiveis = itens.filter((i) => i.status === status).length;
-    return limite === null ? `${ROTULO_STATUS[status]} (${visiveis})` : `${ROTULO_STATUS[status]} (${noPlano(status)}/${limite})`;
+    return limite === null ? String(itens.filter((i) => i.status === status).length) : `${noPlano(status)}/${limite}`;
   };
 
+  // O texto do título continua "Em andamento (2/3)" para leitores de tela; na tela os parênteses somem e a contagem vira pílula.
   const Titulo = ({ status }: { status: Status }) => (
-    <h3 className="flex flex-wrap items-center gap-1.5 text-[11px] font-black uppercase tracking-wide text-on-surface-variant">
-      {titulo(status)}
-      {cheia(status) && <span className="rounded-full border border-neon-error/50 px-1.5 py-0.5 text-[9px] text-neon-error">Limite</span>}
+    <h3 className="flex flex-wrap items-center gap-2 text-sm font-black text-on-surface">
+      <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: COR_STATUS[status] }} />
+      {ROTULO_STATUS[status]}{' '}
+      <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-on-surface-variant">
+        <span className="sr-only">(</span>
+        {contagem(status)}
+        <span className="sr-only">)</span>
+      </span>
+      {cheia(status) && <span className="rounded-full border border-neon-error/50 px-1.5 py-0.5 text-[9px] uppercase text-neon-error">Limite</span>}
     </h3>
   );
 
-  const estiloColuna = (status: Status) =>
-    `flex flex-col gap-2 rounded-2xl border p-3 min-h-40 ${cheia(status) ? 'border-neon-error/40 bg-neon-error/5' : 'border-white/10 bg-white/5'}`;
+  /** Coluna de vidro com um tom do status no topo (como no exemplo); cheia de WIP fica avermelhada. */
+  const propsColuna = (status: Status) => ({
+    className: `flex flex-col gap-2.5 rounded-3xl border p-3 min-h-40 backdrop-blur-xl ${cheia(status) ? 'border-neon-error/40' : 'border-white/10'}`,
+    style: { backgroundImage: `linear-gradient(180deg, ${cheia(status) ? '#ffb4ab' : COR_STATUS[status]}26, rgba(255,255,255,0.03) 42%)` },
+  });
 
   const cartao = (item: ItemPlano) => (
     <CartaoKanban
@@ -135,7 +149,7 @@ export default function Kanban({ itens, todos = itens, wip = SEM_LIMITES, agrupa
     });
 
   const colunas = (
-    <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
+    <div className="grid items-start gap-4 grid-cols-[repeat(auto-fit,minmax(14rem,1fr))]">
       {STATUS.map((status) => {
         const daColuna = itens.filter((i) => i.status === status);
         return (
@@ -147,7 +161,7 @@ export default function Kanban({ itens, todos = itens, wip = SEM_LIMITES, agrupa
               e.preventDefault();
               soltar(status);
             }}
-            className={estiloColuna(status)}
+            {...propsColuna(status)}
           >
             <Titulo status={status} />
             {daColuna.length === 0 && <p className="py-4 text-center text-xs text-on-surface-variant">Nenhum teste</p>}
@@ -163,7 +177,7 @@ export default function Kanban({ itens, todos = itens, wip = SEM_LIMITES, agrupa
       <div className="grid min-w-[52rem] grid-cols-[8rem_repeat(4,minmax(10rem,1fr))] gap-2">
         <div />
         {STATUS.map((status) => (
-          <div key={status} data-testid={`cabecalho-${status}`} className={`rounded-xl border px-3 py-2 ${cheia(status) ? 'border-neon-error/40 bg-neon-error/5' : 'border-white/10 bg-white/5'}`}>
+          <div key={status} data-testid={`cabecalho-${status}`} className={`rounded-2xl border px-3 py-2 backdrop-blur-xl ${cheia(status) ? 'border-neon-error/40' : 'border-white/10'}`} style={propsColuna(status).style}>
             <Titulo status={status} />
           </div>
         ))}
@@ -193,7 +207,7 @@ export default function Kanban({ itens, todos = itens, wip = SEM_LIMITES, agrupa
                       e.preventDefault();
                       soltar(status, raia);
                     }}
-                    className="flex min-h-12 flex-col gap-2 rounded-xl border border-white/5 bg-white/[0.03] p-2"
+                    className="flex min-h-12 flex-col gap-2 rounded-2xl border border-white/5 bg-white/[0.03] p-2"
                   >
                     {aberta && celula.map(cartao)}
                     {!aberta && celula.length > 0 && <p className="text-center text-[11px] text-on-surface-variant">{`${celula.length} teste(s)`}</p>}
@@ -211,6 +225,7 @@ export default function Kanban({ itens, todos = itens, wip = SEM_LIMITES, agrupa
     <>
       {agrupar === 'responsavel' ? comRaias : colunas}
       {pendente && (
+        <Sobreposicao>
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div role="alertdialog" aria-modal="true" aria-label="Confirmar movimento" className="w-full max-w-sm p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface">
             <div className="space-y-2 text-sm">
@@ -238,6 +253,7 @@ export default function Kanban({ itens, todos = itens, wip = SEM_LIMITES, agrupa
             </div>
           </div>
         </div>
+        </Sobreposicao>
       )}
     </>
   );

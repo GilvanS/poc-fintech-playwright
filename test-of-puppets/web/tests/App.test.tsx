@@ -106,11 +106,12 @@ describe('App — shell visual', () => {
   it('o menu abre como trilho só de ícones; expandir mostra os nomes, lembra a escolha e dá para recolher de novo', async () => {
     const { unmount } = await entrar();
     expect(menu()).toHaveAttribute('data-recolhido', 'true');
-    expect(within(menu()).queryByText('Kanban')).toBeNull();
+    expect(within(menu()).getByRole('group', { name: 'Sub-opções de Planos & Testes' })).not.toHaveClass('hidden'); // o grupo da tela ativa vem aberto
+    expect(within(menu()).getByRole('group', { name: 'Sub-opções de Planejamento' })).toHaveClass('hidden'); // os outros descem ao clicar no ícone
 
     await userEvent.click(within(menu()).getByRole('button', { name: 'Expandir menu' }));
     expect(menu()).toHaveAttribute('data-recolhido', 'false');
-    expect(within(menu()).getByText('Kanban')).toBeInTheDocument();
+    expect(within(menu()).getByText('Planos & Testes')).toBeInTheDocument();
 
     unmount();
     render(<App />);

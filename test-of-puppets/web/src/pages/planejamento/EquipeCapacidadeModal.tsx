@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Plus, Trash2, Users, X } from 'lucide-react';
 import { atualizarPessoa, criarPessoa, CORES, excluirPessoa, listarPessoas, type Cor, type Pessoa } from '../../pessoas/clientePessoas.ts';
 import { ErroApi } from '../cenarios/clienteApi.ts';
+import { PainelTela } from '../../shared/PainelTela.tsx';
 
 interface Props {
   /** Todas as pessoas da Equipe (ativas e inativas). */
@@ -117,8 +118,8 @@ export default function EquipeCapacidadeModal({ pessoas, onSalvo, onAbrirEquipe,
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div role="dialog" aria-modal="true" aria-label="Equipe e capacidade" className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface">
+    <PainelTela titulo="Equipe e capacidade" largura="form" onFechar={onFechar}>
+      <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 font-black uppercase text-sm">
             <Users size={18} className="text-volt-green" aria-hidden /> Equipe e capacidade
@@ -221,6 +222,6 @@ export default function EquipeCapacidadeModal({ pessoas, onSalvo, onAbrirEquipe,
           </button>
         </div>
       </div>
-    </div>
+    </PainelTela>
   );
 }

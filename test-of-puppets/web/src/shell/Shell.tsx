@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { ArrowLeft, Image as IconeImagem } from 'lucide-react';
 import MatrixDotLoader from '../shared/MatrixDotLoader.tsx';
+import { AreaDePaineis } from '../shared/PainelTela.tsx';
 import FundoModal from './FundoModal.tsx';
 import Sidebar from './Sidebar.tsx';
 import Online from './Online.tsx';
@@ -93,7 +94,8 @@ export default function Shell({ ativo, onSelecionar, planos, planoAtivoId, onPla
       {lado === 'esquerda' && menu}
 
       <main className="flex-1 min-w-0 flex flex-col gap-6">
-        <header className="relative overflow-hidden p-6 rounded-2xl border border-white/10 bg-volt-surface/80 backdrop-blur-sm">
+        {/* Sem overflow-hidden e com z-index: o popup do sino nasce aqui dentro e precisa passar da borda do cabeçalho e ficar por cima da página. */}
+        <header className="relative z-30 p-6 rounded-2xl border border-white/10 bg-volt-surface/80 backdrop-blur-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <button
@@ -160,7 +162,7 @@ export default function Shell({ ativo, onSelecionar, planos, planoAtivoId, onPla
           ))}
         </nav>
 
-        {children}
+        <AreaDePaineis>{children}</AreaDePaineis>
       </main>
 
       {lado === 'direita' && menu}

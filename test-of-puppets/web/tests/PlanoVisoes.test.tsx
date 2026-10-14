@@ -54,10 +54,10 @@ describe('Visão card (kanban)', () => {
   it('distribui os testes nas colunas pelo status, com a contagem no título', async () => {
     await abrir();
     await irParaCards();
-    expect(within(coluna('agendado')).getByText('Agendado (2)')).toBeInTheDocument();
-    expect(within(coluna('em_andamento')).getByText('Em andamento (1)')).toBeInTheDocument();
-    expect(within(coluna('refinamento')).getByText('Refinamento (0)')).toBeInTheDocument();
-    expect(within(coluna('concluido')).getByText('Concluído (1)')).toBeInTheDocument();
+    expect(within(coluna('agendado')).getByRole('heading')).toHaveTextContent('Agendado (2)');
+    expect(within(coluna('em_andamento')).getByRole('heading')).toHaveTextContent('Em andamento (1)');
+    expect(within(coluna('refinamento')).getByRole('heading')).toHaveTextContent('Refinamento (0)');
+    expect(within(coluna('concluido')).getByRole('heading')).toHaveTextContent('Concluído (1)');
     expect(idsNaColuna('agendado')).toEqual(['CT03.2', 'CT03.7']);
     expect(idsNaColuna('em_andamento')).toEqual(['CT04.1']);
     expect(idsNaColuna('concluido')).toEqual(['CT03.1']);
@@ -70,8 +70,9 @@ describe('Visão card (kanban)', () => {
     const ct32 = cartao('CT03.2');
     expect(within(ct32).getByText('CT03.2')).toBeInTheDocument();
     expect(within(ct32).getByText('Pagar valor mínimo')).toBeInTheDocument();
-    expect(within(ct32).getByText('Faturas · massa 0483')).toBeInTheDocument();
-    expect(within(ct32).getByText('Planejada 05/10/2026')).toBeInTheDocument();
+    expect(within(ct32).getByText('Faturas')).toBeInTheDocument(); // funcionalidade e massa viraram chips separados
+    expect(within(ct32).getByText('massa 0483')).toBeInTheDocument();
+    expect(within(ct32).getByTitle('Planejada 05/10/2026')).toBeInTheDocument();
     expect(within(cartao('CT03.7')).getByText('Aguardando CT03.2 passar')).toBeInTheDocument();
     expect(within(cartao('CT03.1')).getByLabelText('Resultado de CT03.1')).toHaveValue('passou');
     expect(within(cartao('CT04.1')).queryByLabelText('Resultado de CT04.1')).toBeNull();
@@ -169,7 +170,7 @@ describe('filtros', () => {
     expect(idsNaColuna('agendado')).toEqual(['CT03.2']);
     expect(idsNaColuna('em_andamento')).toEqual(['CT04.1']);
     expect(idsNaColuna('concluido')).toEqual([]);
-    expect(within(coluna('agendado')).getByText('Agendado (1)')).toBeInTheDocument();
+    expect(within(coluna('agendado')).getByRole('heading')).toHaveTextContent('Agendado (1)');
 
     await userEvent.type(screen.getByLabelText('ID/cenário'), 'zzz');
     expect(screen.getByText('Nenhum teste encontrado com estes filtros')).toBeInTheDocument();

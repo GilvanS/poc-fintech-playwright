@@ -2,7 +2,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
-import { PORTA_API, PORTA_WEB, URL_API, URL_WEB } from './e2e/ambiente.ts';
+import { HOJE_E2E, PORTA_API, PORTA_WEB, URL_API, URL_WEB } from './e2e/ambiente.ts';
 
 /**
  * E2E da própria ferramenta. Sobe um servidor SÓ para o teste: porta própria, pasta de dados temporária
@@ -25,7 +25,7 @@ export default defineConfig({
   webServer: [
     {
       command: 'node --import tsx server/src/index.ts',
-      env: { PUPPETS_PORT: String(PORTA_API), PUPPETS_DADOS: dadosTemporarios, PUPPETS_MODO_TESTE: '1' },
+      env: { PUPPETS_PORT: String(PORTA_API), PUPPETS_DADOS: dadosTemporarios, PUPPETS_MODO_TESTE: '1', PUPPETS_HOJE: HOJE_E2E },
       url: `${URL_API}/api/saude`,
       reuseExistingServer: false,
       timeout: 60_000,

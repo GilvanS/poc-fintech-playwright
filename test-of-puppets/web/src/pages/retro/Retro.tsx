@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Lock, LockOpen, Plus, RefreshCw, Sparkles } from 'lucide-react';
+import Sobreposicao from '../../shared/Sobreposicao.tsx';
 import { criarIncidente } from '../../incidentes/clienteIncidentes.ts';
 import { useIncidentes } from '../../incidentes/ContextoIncidentes.tsx';
 import { usePessoas } from '../../pessoas/ContextoPessoas.tsx';
@@ -350,6 +351,7 @@ export default function Retro({ planoId, hoje: hojeProp, onIrParaPlanos }: Props
       )}
 
       {reabrindo && retro && (
+        <Sobreposicao>
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70">
           <div role="alertdialog" aria-modal="true" aria-label="Confirmar reabertura" className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#1a1a1a] p-6 text-on-surface">
             <p className="text-sm font-bold">Reabrir a retrospectiva?</p>
@@ -362,6 +364,7 @@ export default function Retro({ planoId, hoje: hojeProp, onIrParaPlanos }: Props
             </div>
           </div>
         </div>
+        </Sobreposicao>
       )}
     </section>
   );
