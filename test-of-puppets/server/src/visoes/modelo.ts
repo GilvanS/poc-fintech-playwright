@@ -1,5 +1,5 @@
-/** Tipos de visão que já têm tela. Os outros modelos da galeria (M11) entram nas tarefas T13.4 em diante. */
-export const TIPOS_VISAO = ['lista', 'kanban'] as const;
+/** Os 9 modelos da galeria (M11). Só `lista` e `kanban` usam os filtros guardados; os demais abrem a própria tela do plano escolhido. */
+export const TIPOS_VISAO = ['lista', 'kanban', 'roadmap', 'incidentes', 'release', 'lancamento', 'iteracoes', 'planejamento', 'retro'] as const;
 export type TipoVisao = (typeof TIPOS_VISAO)[number];
 
 /** Filtros guardados na visão. Vazio = sem filtro; `__sem` = "sem responsável"/"sem prioridade" (igual à tela do plano). */

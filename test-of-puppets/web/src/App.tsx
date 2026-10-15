@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import GridRevealBackdrop from './shared/GridRevealBackdrop.tsx';
+import Sobreposicao from './shared/Sobreposicao.tsx';
 import Entrada from './pages/Entrada.tsx';
 import Secao from './pages/Secao.tsx';
 import Cenarios from './pages/cenarios/Cenarios.tsx';
@@ -65,6 +66,8 @@ function Logado({ fundo, onFundo }: PropsLogado) {
   const [visoes, setVisoes] = useState<Visao[]>([]);
   const [criandoVisao, setCriandoVisao] = useState(false);
   const [erroVisao, setErroVisao] = useState<string | null>(null);
+  // Visão que está sendo confirmada para exclusão (popup "Excluir a visão ...?").
+  const [excluindoVisao, setExcluindoVisao] = useState<Visao | null>(null);
   // Filtros com que a Lista foi aberta a partir do Lançamento; `n` faz a Lista recomeçar a cada clique.
   // `teste`: a Lista abre já com o detalhe desse teste (vem do Release).
   const [filtroLista, setFiltroLista] = useState<{ filtros: Filtros; n: number; teste?: string } | null>(null);
@@ -123,11 +126,23 @@ function Logado({ fundo, onFundo }: PropsLogado) {
     setAtivo(chaveDaVisao(nova.id));
   };
 
+  /**
+   * Admin exclui qualquer visão; as demais pessoas só a própria visão pessoal (o servidor confere de novo). Ninguém escolhido
+   * em "Você" = o dono da máquina, que conta como admin.
+   */
+  const podeExcluir = (visao: Visao) => idVoce === null || voce?.admin === true || (!visao.compartilhada && visao.dono !== null && visao.dono === idVoce);
+
+  const pedirExclusao = (visao: Visao) => {
+    setErroVisao(null);
+    setExcluindoVisao(visao);
+  };
+
   const excluir = async (visao: Visao) => {
     setErroVisao(null);
     try {
       await excluirVisao(visao.id, idVoce);
-      setAtivo('planos');
+      setExcluindoVisao(null);
+      setAtivo((atual) => (atual === chaveDaVisao(visao.id) ? 'planos' : atual));
       await recarregarVisoes();
     } catch (e) {
       setErroVisao(e instanceof Error ? e.message : 'Não foi possível excluir a visão.');
@@ -154,59 +169,8 @@ function Logado({ fundo, onFundo }: PropsLogado) {
   const idVisao = idDaVisao(ativo);
   const visaoAtiva = idVisao ? (visoes.find((v) => v.id === idVisao) ?? null) : null;
 
-  const conteudo = () => {
-    if (idVisao) {
-      // A visão foi excluída (por outra pessoa, por exemplo): volta para Planos em vez de mostrar uma página vazia.
-      if (!visaoAtiva) return <Planos onLista={setPlanos} />;
-      return (
-        <>
-          {erroVisao && (
-            <p role="alert" className="rounded-xl border border-neon-error/40 bg-neon-error/10 px-3 py-2 text-xs text-neon-error">
-              {erroVisao}
-            </p>
-          )}
-          <PlanoPagina
-            titulo={visaoAtiva.nome}
-            icone={itemPorChave(visaoAtiva.tipo).icone}
-            tipo={visaoAtiva.tipo}
-            plano={planoAtivo}
-            filtrosIniciais={filtrosDaVisao(visaoAtiva.filtros)}
-            onAbrirRetro={abrirRetro}
-            chaveReinicio={ativo}
-            acoes={
-              <button
-                type="button"
-                onClick={() => void excluir(visaoAtiva)}
-                className="px-4 py-2 rounded-full border border-neon-error/40 bg-neon-error/10 text-sm font-bold text-neon-error hover:bg-neon-error/20 cursor-pointer"
-              >
-                Excluir visão
-              </button>
-            }
-            onIrParaPlanos={irParaPlanos}
-            onMudou={() => void recarregarPlanos()}
-          />
-        </>
-      );
-    }
-    const chave = ativo as ChaveItem;
-    if (chave === 'planos') return <Planos onLista={setPlanos} />;
-    if (chave === 'lista' || chave === 'kanban') {
-      const { rotulo, icone } = itemPorChave(chave);
-      return (
-        <PlanoPagina
-          titulo={rotulo}
-          icone={icone}
-          tipo={chave}
-          plano={planoAtivo}
-          filtrosIniciais={chave === 'lista' ? filtroLista?.filtros : undefined}
-          testeInicial={chave === 'lista' ? filtroLista?.teste : undefined}
-          onAbrirRetro={abrirRetro}
-          chaveReinicio={chave === 'lista' ? `lista:${filtroLista?.n ?? 0}` : chave}
-          onIrParaPlanos={irParaPlanos}
-          onMudou={() => void recarregarPlanos()}
-        />
-      );
-    }
+  /** A tela de cada item do menu, sem Planos/Lista/Kanban (esses dependem de filtros e do plano). Vale também para visões salvas desses tipos. */
+  const telaDe = (chave: ChaveItem) => {
     if (chave === 'roadmap') return <Roadmap onIrParaPlanos={irParaPlanos} />;
     if (chave === 'iteracoes') return <Iteracoes onIrParaPlanos={irParaPlanos} />;
     if (chave === 'planejamento') return <Planejamento onIrParaEquipe={() => setAtivo('equipe')} />;
@@ -243,6 +207,80 @@ function Logado({ fundo, onFundo }: PropsLogado) {
     return <Secao chave={chave} />;
   };
 
+  const conteudo = () => {
+    if (idVisao) {
+      // A visão foi excluída (por outra pessoa, por exemplo): volta para Planos em vez de mostrar uma página vazia.
+      if (!visaoAtiva) return <Planos onLista={setPlanos} />;
+      const botaoExcluir = !podeExcluir(visaoAtiva) ? null : (
+        <button
+          type="button"
+          onClick={() => pedirExclusao(visaoAtiva)}
+          className="px-4 py-2 rounded-full border border-neon-error/40 bg-neon-error/10 text-sm font-bold text-neon-error hover:bg-neon-error/20 cursor-pointer"
+        >
+          Excluir visão
+        </button>
+      );
+      // Roadmap, Release, Retro etc.: abre a tela do tipo, com uma faixa que diz qual visão salva é e deixa excluir.
+      if (visaoAtiva.tipo !== 'lista' && visaoAtiva.tipo !== 'kanban') {
+        return (
+          <>
+            {erroVisao && (
+              <p role="alert" className="rounded-xl border border-neon-error/40 bg-neon-error/10 px-3 py-2 text-xs text-neon-error">
+                {erroVisao}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-bold text-on-surface-variant">{`Visão salva: ${visaoAtiva.nome}`}</p>
+              {botaoExcluir}
+            </div>
+            {telaDe(visaoAtiva.tipo)}
+          </>
+        );
+      }
+      return (
+        <>
+          {erroVisao && (
+            <p role="alert" className="rounded-xl border border-neon-error/40 bg-neon-error/10 px-3 py-2 text-xs text-neon-error">
+              {erroVisao}
+            </p>
+          )}
+          <PlanoPagina
+            titulo={visaoAtiva.nome}
+            icone={itemPorChave(visaoAtiva.tipo).icone}
+            tipo={visaoAtiva.tipo}
+            plano={planoAtivo}
+            filtrosIniciais={filtrosDaVisao(visaoAtiva.filtros)}
+            onAbrirRetro={abrirRetro}
+            chaveReinicio={ativo}
+            acoes={botaoExcluir}
+            onIrParaPlanos={irParaPlanos}
+            onMudou={() => void recarregarPlanos()}
+          />
+        </>
+      );
+    }
+    const chave = ativo as ChaveItem;
+    if (chave === 'planos') return <Planos onLista={setPlanos} />;
+    if (chave === 'lista' || chave === 'kanban') {
+      const { rotulo, icone } = itemPorChave(chave);
+      return (
+        <PlanoPagina
+          titulo={rotulo}
+          icone={icone}
+          tipo={chave}
+          plano={planoAtivo}
+          filtrosIniciais={chave === 'lista' ? filtroLista?.filtros : undefined}
+          testeInicial={chave === 'lista' ? filtroLista?.teste : undefined}
+          onAbrirRetro={abrirRetro}
+          chaveReinicio={chave === 'lista' ? `lista:${filtroLista?.n ?? 0}` : chave}
+          onIrParaPlanos={irParaPlanos}
+          onMudou={() => void recarregarPlanos()}
+        />
+      );
+    }
+    return telaDe(chave);
+  };
+
   return (
     <Shell
       ativo={visaoAtiva || !idVisao ? ativo : 'planos'}
@@ -250,7 +288,11 @@ function Logado({ fundo, onFundo }: PropsLogado) {
       planos={planos}
       planoAtivoId={planoAtivo?.id ?? null}
       onPlano={escolherPlano}
-      visoes={visoes}
+      visoes={visoes.map((v) => ({ ...v, podeExcluir: podeExcluir(v) }))}
+      onExcluirVisao={(chave) => {
+        const visao = visoes.find((v) => v.id === idDaVisao(chave));
+        if (visao) pedirExclusao(visao);
+      }}
       selos={incAbertos > 0 ? { incidentes: String(incAbertos) } : {}}
       onLembrete={abrirLembrete}
       fundo={fundo}
@@ -258,6 +300,31 @@ function Logado({ fundo, onFundo }: PropsLogado) {
     >
       {conteudo()}
       {criandoVisao && <NovaVisaoModal onCriar={criar} onFechar={fecharCriar} />}
+      {excluindoVisao && (
+        <Sobreposicao>
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <div role="alertdialog" aria-modal="true" aria-label="Confirmar exclusão da visão" className="w-full max-w-sm p-6 rounded-3xl bg-[#1a1a1a] border border-white/10 text-on-surface">
+              <p className="text-sm font-bold">{`Excluir a visão ${excluindoVisao.nome}?`}</p>
+              <p className="mt-2 text-xs text-on-surface-variant">
+                {excluindoVisao.compartilhada ? 'Ela é compartilhada: some do menu de toda a equipe.' : 'Só a sua visão some; os testes e planos não mudam.'}
+              </p>
+              {erroVisao && (
+                <p role="alert" className="mt-3 text-xs text-neon-error">
+                  {erroVisao}
+                </p>
+              )}
+              <div className="mt-5 flex justify-end gap-2">
+                <button type="button" onClick={() => setExcluindoVisao(null)} className="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/5 border border-white/10 hover:bg-white/10 cursor-pointer">
+                  Manter
+                </button>
+                <button type="button" onClick={() => void excluir(excluindoVisao)} className="px-4 py-2.5 rounded-xl text-xs font-black bg-neon-error text-black cursor-pointer">
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </Sobreposicao>
+      )}
     </Shell>
   );
 }

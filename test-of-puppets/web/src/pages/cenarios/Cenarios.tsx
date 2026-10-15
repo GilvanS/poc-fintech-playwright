@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Download, FileUp, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import Sobreposicao from '../../shared/Sobreposicao.tsx';
 import { itemPorChave } from '../../shell/menu.ts';
+import CenarioDetalheModal from './CenarioDetalheModal.tsx';
 import CenarioModal from './CenarioModal.tsx';
+import ImportarCsvModal from './ImportarCsvModal.tsx';
 import { formatarCpf } from './massa.ts';
 import {
   atualizarCenario,
   criarCenario,
   ErroApi,
   excluirCenario,
+  exportarCenariosCsv,
   listarCenarios,
   type CenarioEntrada,
   type CenarioVisao,
@@ -24,13 +27,19 @@ function plural(n: number): string {
   return `${n} ${n === 1 ? 'cenário' : 'cenários'}`;
 }
 
-function filtrar(cenarios: CenarioVisao[], busca: string): CenarioVisao[] {
+function filtrar(cenarios: CenarioVisao[], busca: string, funcionalidade: string, projeto: string): CenarioVisao[] {
   const termo = busca.trim().toLowerCase();
-  if (!termo) return cenarios;
-  return cenarios.filter((c) =>
-    [c.idCenario, c.nome, c.funcionalidade, c.idMassa ?? ''].some((campo) => campo.toLowerCase().includes(termo)),
+  return cenarios.filter(
+    (c) =>
+      (!funcionalidade || c.funcionalidade === funcionalidade) &&
+      (!projeto || c.projeto === projeto) &&
+      (!termo || [c.idCenario, c.nome, c.funcionalidade, c.feature ?? '', c.projeto ?? '', c.idMassa ?? ''].some((campo) => campo.toLowerCase().includes(termo))),
   );
 }
+
+/** Abaixo de 1 MB mostra em KB (20 KB aparecendo como "0 MB" não diz nada). */
+const megas = (bytes: number) =>
+  bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB`;
 
 /** Tela "Cenários e massa" (T1): lista, busca e cadastro/edição/exclusão de cenários pelo modal M16. */
 export default function Cenarios() {
@@ -42,6 +51,11 @@ export default function Cenarios() {
   const [modal, setModal] = useState<Modal | null>(null);
   const [excluindo, setExcluindo] = useState<CenarioVisao | null>(null);
   const [erroExcluir, setErroExcluir] = useState<string | null>(null);
+  const [detalhe, setDetalhe] = useState<CenarioVisao | null>(null);
+  const [importando, setImportando] = useState(false);
+  const [filtroFuncionalidade, setFiltroFuncionalidade] = useState('');
+  const [filtroProjeto, setFiltroProjeto] = useState('');
+  const [erroExportar, setErroExportar] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setAtualizando(true);
@@ -60,7 +74,17 @@ export default function Cenarios() {
   }, [carregar]);
 
   const cenarios = useMemo(() => dados?.cenarios ?? [], [dados]);
-  const visiveis = useMemo(() => filtrar(cenarios, busca), [cenarios, busca]);
+  const visiveis = useMemo(() => filtrar(cenarios, busca, filtroFuncionalidade, filtroProjeto), [cenarios, busca, filtroFuncionalidade, filtroProjeto]);
+  const filtrando = busca.trim() !== '' || filtroFuncionalidade !== '' || filtroProjeto !== '';
+
+  const exportar = async () => {
+    setErroExportar(null);
+    try {
+      await exportarCenariosCsv();
+    } catch (erro) {
+      setErroExportar(erro instanceof ErroApi ? erro.message : 'Não foi possível exportar.');
+    }
+  };
 
   const salvar = async (entrada: CenarioEntrada, versao?: number) => {
     if (modal?.modo === 'editar') await atualizarCenario(modal.cenario.idCenario, entrada, versao ?? modal.cenario.versao);
@@ -81,7 +105,8 @@ export default function Cenarios() {
     }
   };
 
-  const contagem = busca.trim() ? `${visiveis.length} de ${plural(cenarios.length)}` : plural(cenarios.length);
+  const contagem = filtrando ? `${visiveis.length} de ${plural(cenarios.length)}` : plural(cenarios.length);
+  const armazenamento = dados?.armazenamento;
 
   return (
     <section aria-label={rotulo} className="flex flex-col gap-5">
@@ -94,6 +119,14 @@ export default function Cenarios() {
           <button type="button" onClick={() => void carregar()} disabled={atualizando} className={botao}>
             <RefreshCw size={16} className={atualizando ? 'animate-spin' : ''} aria-hidden />
             Atualizar
+          </button>
+          <button type="button" onClick={() => void exportar()} disabled={dados === null} className={botao}>
+            <Download size={16} aria-hidden />
+            Exportar CSV
+          </button>
+          <button type="button" onClick={() => setImportando(true)} disabled={dados === null} className={botao}>
+            <FileUp size={16} aria-hidden />
+            Importar CSV
           </button>
           <button
             type="button"
@@ -124,12 +157,50 @@ export default function Cenarios() {
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               aria-label="Buscar cenário"
-              placeholder="Buscar por ID, nome, funcionalidade ou massa…"
+              placeholder="Buscar por ID, nome, funcionalidade, feature, projeto ou massa…"
               className="flex-1 min-w-[16rem] p-2.5 rounded-xl text-sm bg-volt-page border border-white/20 text-on-surface outline-none focus:border-volt-green/50"
             />
+            <select
+              value={filtroFuncionalidade}
+              onChange={(e) => setFiltroFuncionalidade(e.target.value)}
+              aria-label="Filtrar por funcionalidade"
+              className="rounded-xl border border-white/20 bg-volt-page p-2.5 text-sm text-on-surface outline-none focus:border-volt-green/50"
+            >
+              <option value="">Todas as funcionalidades</option>
+              {(dados.funcionalidades ?? []).map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+            {(dados.projetos ?? []).length > 0 && (
+              <select
+                value={filtroProjeto}
+                onChange={(e) => setFiltroProjeto(e.target.value)}
+                aria-label="Filtrar por projeto"
+                className="rounded-xl border border-white/20 bg-volt-page p-2.5 text-sm text-on-surface outline-none focus:border-volt-green/50"
+              >
+                <option value="">Todos os projetos</option>
+                {(dados.projetos ?? []).map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            )}
             <p className="text-xs text-on-surface-variant">{contagem}</p>
           </div>
           <p className="text-[11px] text-on-surface-variant">CPFs fictícios de massa de teste, não são dados reais. Esta ferramenta roda só nesta máquina.</p>
+          {armazenamento && (
+            <p data-testid="armazenamento" className={`text-[11px] ${armazenamento.perto ? 'font-bold text-neon-error' : 'text-on-surface-variant'}`}>
+              {`Armazenamento: ${armazenamento.cenarios.toLocaleString('pt-BR')} de ${armazenamento.maxCenarios.toLocaleString('pt-BR')} cenários · ${megas(armazenamento.bytes)} de ${megas(armazenamento.maxBytes)}${armazenamento.perto ? ' — perto do limite' : ''}. O banco fica só nesta máquina; o CSV de controle (pasta controle/) é o que vai para o git.`}
+            </p>
+          )}
+          {erroExportar && (
+            <p role="alert" className="text-xs text-neon-error">
+              {erroExportar}
+            </p>
+          )}
 
           {cenarios.length === 0 ? (
             <p className="py-8 text-center text-sm text-on-surface-variant">Nenhum cenário cadastrado ainda</p>
@@ -143,6 +214,8 @@ export default function Cenarios() {
                     <th className="py-2 pr-4 font-bold">ID</th>
                     <th className="py-2 pr-4 font-bold">Nome</th>
                     <th className="py-2 pr-4 font-bold">Funcionalidade</th>
+                    <th className="py-2 pr-4 font-bold">Feature</th>
+                    <th className="py-2 pr-4 font-bold">Projeto</th>
                     <th className="py-2 pr-4 font-bold">Massa</th>
                     <th className="py-2 pr-4 font-bold">CPF</th>
                     <th className="py-2 font-bold">
@@ -152,10 +225,16 @@ export default function Cenarios() {
                 </thead>
                 <tbody>
                   {visiveis.map((c) => (
-                    <tr key={c.idCenario} className="border-t border-white/10 align-top">
-                      <td className="py-3 pr-4 font-mono text-volt-green whitespace-nowrap">{c.idCenario}</td>
+                    <tr key={c.idCenario} onClick={() => setDetalhe(c)} className="border-t border-white/10 align-top cursor-pointer hover:bg-white/[0.03]">
+                      <td className="py-3 pr-4 font-mono whitespace-nowrap">
+                        <button type="button" onClick={() => setDetalhe(c)} aria-label={`Detalhes de ${c.idCenario}`} className="font-mono text-volt-green underline-offset-2 hover:underline cursor-pointer">
+                          {c.idCenario}
+                        </button>
+                      </td>
                       <td className="py-3 pr-4">{c.nome}</td>
                       <td className="py-3 pr-4">{c.funcionalidade}</td>
+                      <td className="py-3 pr-4 font-mono text-xs">{c.feature ?? <span className="text-on-surface-variant">-</span>}</td>
+                      <td className="py-3 pr-4">{c.projeto ?? <span className="text-on-surface-variant">-</span>}</td>
                       <td className="py-3 pr-4">
                         <div className="flex flex-col gap-1 items-start">
                           {c.idMassa ? <span className="font-mono">{c.idMassa}</span> : <span className="text-on-surface-variant">-</span>}
@@ -172,7 +251,10 @@ export default function Cenarios() {
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
-                            onClick={() => setModal({ modo: 'editar', cenario: c })}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setModal({ modo: 'editar', cenario: c });
+                            }}
                             aria-label={`Editar ${c.idCenario}`}
                             className="p-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 cursor-pointer"
                           >
@@ -180,7 +262,8 @@ export default function Cenarios() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setErroExcluir(null);
                               setExcluindo(c);
                             }}
@@ -205,10 +288,29 @@ export default function Cenarios() {
           cenario={modal.modo === 'editar' ? modal.cenario : undefined}
           cenarios={cenarios}
           funcionalidades={dados?.funcionalidades ?? []}
+          projetos={dados?.projetos ?? []}
           onSalvar={salvar}
           onFechar={() => setModal(null)}
         />
       )}
+
+      {detalhe && (
+        <CenarioDetalheModal
+          cenario={detalhe}
+          onEditar={() => {
+            setModal({ modo: 'editar', cenario: detalhe });
+            setDetalhe(null);
+          }}
+          onExcluir={() => {
+            setErroExcluir(null);
+            setExcluindo(detalhe);
+            setDetalhe(null);
+          }}
+          onFechar={() => setDetalhe(null)}
+        />
+      )}
+
+      {importando && <ImportarCsvModal onImportado={() => void carregar()} onFechar={() => setImportando(false)} />}
 
       {excluindo && (
         <Sobreposicao>

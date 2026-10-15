@@ -4,7 +4,7 @@ import { Router } from 'express';
 import { DADOS_PADRAO, type Repos } from '../repos.ts';
 import { semear } from '../semente/semente.ts';
 
-const ARQUIVOS = ['cenarios.json', 'pessoas.json', 'planos.json', 'visoes.json', 'config.json', 'incidentes.json', 'retros.json', 'lembretes.json'].flatMap((a) => [a, `${a}.bak`]);
+const ARQUIVOS = ['cenarios.db', 'cenarios.json.migrado', 'controle/cenarios.csv', 'cenarios.json', 'pessoas.json', 'planos.json', 'visoes.json', 'config.json', 'incidentes.json', 'retros.json', 'lembretes.json'].flatMap((a) => [a, `${a}.bak`]);
 
 /**
  * /api/teste — só existe com o servidor em modo de teste (E2E). `POST /reset` apaga os dados da pasta
@@ -20,6 +20,7 @@ export function rotasTeste(dirDados: string, repos: Repos): Router {
       return;
     }
     for (const arquivo of ARQUIVOS) await rm(join(dirDados, arquivo), { force: true });
+    await rm(join(dirDados, 'controle'), { recursive: true, force: true });
     const semente = (req.body as { semente?: unknown } | undefined)?.semente === true;
     if (semente) await semear(repos);
     res.json({ ok: true, semente });

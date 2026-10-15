@@ -41,6 +41,8 @@ const tratarErros: ErrorRequestHandler = (erro, _req, res, _next) => {
 export function createApp({ dirDados = DADOS_PADRAO, modoTeste = false }: OpcoesApp = {}): Express {
   const app = express();
   app.disable('x-powered-by');
+  // A importação manda o CSV inteiro dentro do JSON: o teto de 5 MB do arquivo (um pouco mais com o escape do JSON).
+  app.use('/api/cenarios/importar', express.json({ limit: '6mb' }));
   app.use(express.json());
 
   app.get('/api/saude', (_req, res) => {
@@ -55,7 +57,7 @@ export function createApp({ dirDados = DADOS_PADRAO, modoTeste = false }: Opcoes
     rotasCenarios(repos.cenarios, (id) => repos.planos.planosQueUsam(id), (id) => repos.planos.historicoDoCenario(id)),
   );
   app.use('/api/planos', rotasPlanos(repos.planos));
-  app.use('/api/visoes', rotasVisoes(repos.visoes));
+  app.use('/api/visoes', rotasVisoes(repos.visoes, repos.pessoas));
   app.use('/api/config', rotasConfig(repos.config));
   app.use('/api/incidentes', rotasIncidentes(repos.incidentes));
   app.use('/api/retros', rotasRetros(repos.retros));

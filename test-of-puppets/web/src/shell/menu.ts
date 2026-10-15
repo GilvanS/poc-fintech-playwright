@@ -54,6 +54,8 @@ export interface ItemMenu {
   tarefa: string;
   /** Selo ao lado do nome (contador ou alerta). Por enquanto é dado de exemplo. */
   selo?: string;
+  /** Visão salva que a pessoa pode excluir: o menu mostra a lixeira ao lado dela. */
+  excluivel?: boolean;
 }
 
 export interface GrupoMenu {
@@ -117,6 +119,8 @@ export interface VisaoDoMenu {
   id: string;
   nome: string;
   compartilhada: boolean;
+  /** Admin, ou a dona da própria visão pessoal. */
+  podeExcluir?: boolean;
 }
 
 /** Os grupos do menu com as visões salvas dentro de "Minhas visões", antes de "Nova visão". */
@@ -127,6 +131,7 @@ export function gruposComVisoes(visoes: VisaoDoMenu[]): GrupoMenu[] {
     rotulo: v.nome,
     icone: v.compartilhada ? Users : Bookmark,
     tarefa: 'T13.3',
+    excluivel: v.podeExcluir === true,
   }));
   return GRUPOS.map((g) => (g.titulo === 'Minhas visões' ? { ...g, itens: [...salvas, ...g.itens] } : g));
 }

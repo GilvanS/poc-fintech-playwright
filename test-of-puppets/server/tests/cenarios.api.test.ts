@@ -33,7 +33,9 @@ test('GET /api/cenarios começa vazio', async () => {
   try {
     const res = await s.enviar('GET', '/api/cenarios');
     assert.equal(res.status, 200);
-    assert.deepEqual(await res.json(), { cenarios: [], funcionalidades: [] });
+    const corpo = (await res.json()) as { cenarios: unknown[]; funcionalidades: string[]; projetos: string[]; armazenamento: { cenarios: number; maxCenarios: number; perto: boolean } };
+    assert.deepEqual({ cenarios: corpo.cenarios, funcionalidades: corpo.funcionalidades, projetos: corpo.projetos }, { cenarios: [], funcionalidades: [], projetos: [] });
+    assert.deepEqual({ ...corpo.armazenamento, bytes: undefined }, { cenarios: 0, maxCenarios: 5000, bytes: undefined, maxBytes: 25 * 1024 * 1024, perto: false });
   } finally {
     await s.fechar();
   }
@@ -187,8 +189,10 @@ test('senha e PIN enviados por engano nunca chegam ao arquivo nem à resposta', 
     const res = await s.enviar('POST', '/api/cenarios', { ...ct32, senha: 'Segredo123', pin: '9876' });
     assert.equal(res.status, 201);
     assert.doesNotMatch(JSON.stringify(await res.json()), /Segredo123|9876/);
-    const arquivo = await readFile(join(s.dir, 'cenarios.json'), 'utf8');
-    assert.doesNotMatch(arquivo, /Segredo123|9876|senha|pin/i);
+    const banco = (await readFile(join(s.dir, 'cenarios.db'))).toString('latin1');
+    assert.doesNotMatch(banco, /Segredo123|9876/);
+    const csv = await readFile(join(s.dir, 'controle', 'cenarios.csv'), 'utf8');
+    assert.doesNotMatch(csv, /Segredo123|9876|senha|pin/i);
   } finally {
     await s.fechar();
   }

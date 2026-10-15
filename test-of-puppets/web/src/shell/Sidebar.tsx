@@ -1,6 +1,6 @@
 import { useEffect, useState, type FocusEvent, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, ChevronUp, PanelLeft, PanelLeftClose, PanelLeftOpen, PanelRight, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { ChevronDown, ChevronUp, PanelLeft, PanelLeftClose, PanelLeftOpen, PanelRight, PanelRightClose, PanelRightOpen, Trash2 } from 'lucide-react';
 import { gruposComVisoes, type ChaveAtiva, type GrupoMenu, type ItemMenu, type VisaoDoMenu } from './menu.ts';
 import type { Lado } from './preferencias.ts';
 
@@ -13,6 +13,8 @@ interface Props {
   /** Números ao lado dos itens (ex.: INC abertos); sem entrada, não há selo. */
   selos?: Partial<Record<string, string>>;
   onSelecionar: (chave: ChaveAtiva) => void;
+  /** Lixeira ao lado de cada visão salva que a pessoa pode excluir (só aparece nas `excluivel`). */
+  onExcluirVisao?: (chave: ChaveAtiva) => void;
   onAlternarLado: () => void;
   onAlternarRecolhido: () => void;
 }
@@ -33,23 +35,48 @@ const totalDosSelos = (grupo: GrupoMenu, selos: Partial<Record<string, string>>)
   grupo.itens.reduce((soma, i) => soma + (Number(selos[i.chave] ?? i.selo) || 0), 0);
 
 /** Sub-opção do menu aberto: ícone pequeno + nome; a ativa leva o sublinhado verde, como no exemplo. */
-function SubOpcao({ item, ativo, selo, aoEscolher }: { item: ItemMenu; ativo: boolean; selo?: string; aoEscolher: () => void }) {
+function SubOpcao({
+  item,
+  ativo,
+  selo,
+  aoEscolher,
+  aoExcluir,
+}: {
+  item: ItemMenu;
+  ativo: boolean;
+  selo?: string;
+  aoEscolher: () => void;
+  aoExcluir?: () => void;
+}) {
   const Icone = item.icone;
   return (
-    <button
-      type="button"
-      onClick={aoEscolher}
-      aria-label={item.rotulo}
-      aria-current={ativo ? 'page' : undefined}
-      title={item.rotulo}
-      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-bold transition-colors cursor-pointer ${
-        ativo ? 'border-b-2 border-volt-green text-volt-green' : 'rounded-lg border-b-2 border-transparent text-on-surface-variant hover:bg-white/5 hover:text-on-surface'
-      }`}
-    >
-      <Icone size={14} className="shrink-0" aria-hidden />
-      <span className="min-w-0 flex-1 truncate">{item.rotulo}</span>
-      {selo && <span className="shrink-0 rounded-full bg-volt-green/15 px-1.5 text-[10px] font-black text-volt-green">{selo}</span>}
-    </button>
+    <div className="relative">
+      <button
+        type="button"
+        onClick={aoEscolher}
+        aria-label={item.rotulo}
+        aria-current={ativo ? 'page' : undefined}
+        title={item.rotulo}
+        className={`flex w-full items-center gap-2 py-2 pl-3 text-left text-xs font-bold transition-colors cursor-pointer ${aoExcluir ? 'pr-8' : 'pr-3'} ${
+          ativo ? 'border-b-2 border-volt-green text-volt-green' : 'rounded-lg border-b-2 border-transparent text-on-surface-variant hover:bg-white/5 hover:text-on-surface'
+        }`}
+      >
+        <Icone size={14} className="shrink-0" aria-hidden />
+        <span className="min-w-0 flex-1 truncate">{item.rotulo}</span>
+        {selo && <span className="shrink-0 rounded-full bg-volt-green/15 px-1.5 text-[10px] font-black text-volt-green">{selo}</span>}
+      </button>
+      {aoExcluir && (
+        <button
+          type="button"
+          onClick={aoExcluir}
+          aria-label={`Excluir visão ${item.rotulo}`}
+          title="Excluir visão"
+          className="absolute right-1.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-on-surface-variant opacity-70 hover:bg-neon-error/20 hover:text-neon-error hover:opacity-100 transition-colors cursor-pointer"
+        >
+          <Trash2 size={13} aria-hidden />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -58,7 +85,7 @@ function SubOpcao({ item, ativo, selo, aoEscolher }: { item: ItemMenu; ativo: bo
  * coluna (nada abre por cima da tela). Trilho (padrão): ícone do grupo e, abaixo dele, os ícones das sub-opções.
  * Aberto: o grupo abre e fecha com as sub-opções recuadas (ícone + nome). Botões para trocar de lado e expandir/recolher.
  */
-export default function Sidebar({ lado, recolhido, ativo, visoes = [], selos = {}, onSelecionar, onAlternarLado, onAlternarRecolhido }: Props) {
+export default function Sidebar({ lado, recolhido, ativo, visoes = [], selos = {}, onSelecionar, onExcluirVisao, onAlternarLado, onAlternarRecolhido }: Props) {
   const grupos = gruposComVisoes(visoes);
   const grupoDoAtivo = grupos.find((g) => g.itens.some((i) => i.chave === ativo))?.titulo;
   const [dica, setDica] = useState<Dica | null>(null);
@@ -138,9 +165,10 @@ export default function Sidebar({ lado, recolhido, ativo, visoes = [], selos = {
                 {grupo.itens.map((item) => {
                   const Icone = item.icone;
                   const selo = selos[item.chave] ?? item.selo;
+                  const excluir = item.excluivel && onExcluirVisao ? () => onExcluirVisao(item.chave) : undefined;
                   return (
+                    <div key={item.chave} className="group relative">
                     <button
-                      key={item.chave}
                       type="button"
                       onClick={() => {
                         esconderDica();
@@ -159,6 +187,21 @@ export default function Sidebar({ lado, recolhido, ativo, visoes = [], selos = {
                       <Icone size={16} aria-hidden />
                       {selo && <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-neon-error px-1 text-[9px] font-black text-black">{selo}</span>}
                     </button>
+                    {excluir && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          esconderDica();
+                          excluir();
+                        }}
+                        aria-label={`Excluir visão ${item.rotulo}`}
+                        title="Excluir visão"
+                        className="absolute -bottom-1 -right-1 hidden h-4 w-4 place-items-center rounded-full bg-neon-error text-black group-hover:grid group-focus-within:grid cursor-pointer"
+                      >
+                        <Trash2 size={9} aria-hidden />
+                      </button>
+                    )}
+                    </div>
                   );
                 })}
               </div>
@@ -237,7 +280,14 @@ export default function Sidebar({ lado, recolhido, ativo, visoes = [], selos = {
             {/* Fechado fica só escondido (não some do DOM). */}
             <div className={`ml-[1.35rem] flex-col gap-0.5 border-l border-white/10 pl-2 ${aberto ? 'flex' : 'hidden'}`}>
               {grupo.itens.map((item) => (
-                <SubOpcao key={item.chave} item={item} ativo={item.chave === ativo} selo={selos[item.chave] ?? item.selo} aoEscolher={() => onSelecionar(item.chave)} />
+                <SubOpcao
+                  key={item.chave}
+                  item={item}
+                  ativo={item.chave === ativo}
+                  selo={selos[item.chave] ?? item.selo}
+                  aoEscolher={() => onSelecionar(item.chave)}
+                  aoExcluir={item.excluivel && onExcluirVisao ? () => onExcluirVisao(item.chave) : undefined}
+                />
               ))}
             </div>
           </div>

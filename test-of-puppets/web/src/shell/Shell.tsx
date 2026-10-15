@@ -24,6 +24,8 @@ interface Props {
   visoes: VisaoDoMenu[];
   /** Números ao lado dos itens do menu (INC abertos, por exemplo). */
   selos?: Partial<Record<string, string>>;
+  /** Lixeira ao lado das visões salvas que a pessoa pode excluir. */
+  onExcluirVisao?: (chave: ChaveAtiva) => void;
   /** "Abrir" de um lembrete do sino. */
   onLembrete?: (lembrete: Lembrete) => void;
   fundo: ConfigFundo;
@@ -67,7 +69,7 @@ function StatusServidor() {
  * cabeçalho no estilo do Admin, fileira de botões no celular e a janela "Fundo".
  * O seletor "Plano" e "Você" são reais; só os lembretes do cabeçalho ainda são de exemplo (T10, adiada).
  */
-export default function Shell({ ativo, onSelecionar, planos, planoAtivoId, onPlano, visoes, selos, onLembrete, fundo, onFundo, children }: Props) {
+export default function Shell({ ativo, onSelecionar, planos, planoAtivoId, onPlano, visoes, selos, onExcluirVisao, onLembrete, fundo, onFundo, children }: Props) {
   const [preferencias, setPreferencias] = useState(lerPreferencias);
   const [fundoAberto, setFundoAberto] = useState(false);
 
@@ -84,6 +86,7 @@ export default function Shell({ ativo, onSelecionar, planos, planoAtivoId, onPla
       visoes={visoes}
       selos={selos}
       onSelecionar={onSelecionar}
+      onExcluirVisao={onExcluirVisao}
       onAlternarLado={() => setPreferencias((p) => ({ ...p, lado: p.lado === 'esquerda' ? 'direita' : 'esquerda' }))}
       onAlternarRecolhido={() => setPreferencias((p) => ({ ...p, recolhido: !p.recolhido }))}
     />

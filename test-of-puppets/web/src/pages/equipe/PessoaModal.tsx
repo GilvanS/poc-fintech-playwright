@@ -22,6 +22,7 @@ export default function PessoaModal({ pessoa, onSalvar, onFechar }: Props) {
   const [capacidade, setCapacidade] = useState(pessoa && pessoa.capacidadeMinSemana > 0 ? String(pessoa.capacidadeMinSemana) : '');
   const [cor, setCor] = useState<Cor>(pessoa?.cor ?? 'azul');
   const [ativa, setAtiva] = useState(pessoa?.ativa ?? true);
+  const [admin, setAdmin] = useState(pessoa?.admin ?? false);
   const [erros, setErros] = useState<string[]>([]);
   const [salvando, setSalvando] = useState(false);
   const primeiro = useRef<HTMLInputElement>(null);
@@ -40,7 +41,7 @@ export default function PessoaModal({ pessoa, onSalvar, onFechar }: Props) {
 
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
-    const campos: CamposPessoa = { nome: nome.trim(), cor, ativa };
+    const campos: CamposPessoa = { nome: nome.trim(), cor, ativa, admin };
     if (capacidade.trim() !== '') campos.capacidadeMinSemana = Number(capacidade);
     else if (edicao) campos.capacidadeMinSemana = 0;
     setErros([]);
@@ -92,6 +93,13 @@ export default function PessoaModal({ pessoa, onSalvar, onFechar }: Props) {
             <input type="checkbox" checked={ativa} onChange={(e) => setAtiva(e.target.checked)} className="accent-volt-green" />
             Ativa
           </label>
+          <div>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={admin} onChange={(e) => setAdmin(e.target.checked)} className="accent-volt-green" />
+              Admin
+            </label>
+            <p className="mt-1 text-[11px] text-on-surface-variant">Admin pode excluir qualquer visão salva, inclusive as compartilhadas. Quem não é admin só exclui a própria visão pessoal. Sem ninguém escolhido em "Você", vale como admin.</p>
+          </div>
 
           {erros.length > 0 && (
             <div role="alert" className="rounded-xl border border-neon-error/40 bg-neon-error/10 px-3 py-2 text-xs text-neon-error">

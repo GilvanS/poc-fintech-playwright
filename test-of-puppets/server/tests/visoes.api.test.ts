@@ -57,7 +57,7 @@ test('POST cria a visão: id vem do nome, filtros completam com vazio, versão 1
 test('POST inválido é 400 com todas as mensagens', async () => {
   const s = await iniciar();
   try {
-    const ruim = await s.json('POST', '/api/visoes', { nome: '', tipo: 'roadmap', filtros: { prioridade: 'P9' } });
+    const ruim = await s.json('POST', '/api/visoes', { nome: '', tipo: 'mural', filtros: { prioridade: 'P9' } });
     assert.equal(ruim.status, 400);
     assert.equal(ruim.corpo.erro, 'validacao');
     assert.equal(ruim.corpo.mensagens.length, 3);
@@ -108,21 +108,70 @@ test('nome repetido é 409 dentro do que a pessoa enxerga; pessoas diferentes po
   }
 });
 
-test('DELETE: o dono apaga a sua; outra pessoa recebe 404; compartilhada qualquer um apaga', async () => {
+test('DELETE: o dono apaga a pessoal; a de outra pessoa dá 404; compartilhada só o admin apaga (403 para os outros)', async () => {
   const s = await iniciar();
   try {
+    await s.json('POST', '/api/pessoas', { nome: 'Ana' });
+    await s.json('POST', '/api/pessoas', { nome: 'Bia' });
+    const chefe = await s.json('POST', '/api/pessoas', { nome: 'Chefe', admin: true });
+    assert.equal(chefe.corpo.admin, true);
+    assert.equal((await s.json('GET', '/api/pessoas')).corpo.pessoas.find((p: Json) => p.id === 'ana').admin, false);
+
     await s.json('POST', '/api/visoes', faturasP1);
     await s.json('POST', '/api/visoes', { nome: 'Da equipe', tipo: 'lista', dono: 'ana', compartilhada: true });
 
-    const alheia = await s.json('DELETE', '/api/visoes/so-faturas-p1?voce=bia');
-    assert.equal(alheia.status, 404);
-    const semVoce = await s.json('DELETE', '/api/visoes/so-faturas-p1');
-    assert.equal(semVoce.status, 404);
+    assert.equal((await s.json('DELETE', '/api/visoes/so-faturas-p1?voce=bia')).status, 404);
+    // Compartilhada: nem o dono que não é admin nem um id que não existe na Equipe apagam.
+    const donoSemAdmin = await s.json('DELETE', '/api/visoes/da-equipe?voce=ana');
+    assert.equal(donoSemAdmin.status, 403);
+    assert.equal(donoSemAdmin.corpo.erro, 'sem_permissao');
+    assert.equal((await s.json('DELETE', '/api/visoes/da-equipe?voce=desconhecido')).status, 403);
 
     assert.equal((await s.json('DELETE', '/api/visoes/so-faturas-p1?voce=ana')).status, 204);
-    assert.equal((await s.json('DELETE', '/api/visoes/da-equipe?voce=bia')).status, 204);
+    assert.equal((await s.json('DELETE', '/api/visoes/da-equipe?voce=chefe')).status, 204);
     assert.deepEqual((await s.json('GET', '/api/visoes?voce=ana')).corpo, { visoes: [] });
-    assert.equal((await s.json('DELETE', '/api/visoes/da-equipe')).status, 404);
+    assert.equal((await s.json('DELETE', '/api/visoes/da-equipe?voce=chefe')).status, 404);
+  } finally {
+    await s.fechar();
+  }
+});
+
+test('DELETE sem "Você" (ninguém escolhido = dono da máquina) vale como admin e apaga até a compartilhada', async () => {
+  const s = await iniciar();
+  try {
+    await s.json('POST', '/api/pessoas', { nome: 'Ana' });
+    await s.json('POST', '/api/visoes', { nome: 'Sem dono', tipo: 'release', compartilhada: true });
+    assert.equal((await s.json('DELETE', '/api/visoes/sem-dono')).status, 204);
+    assert.deepEqual((await s.json('GET', '/api/visoes')).corpo, { visoes: [] });
+  } finally {
+    await s.fechar();
+  }
+});
+
+test('DELETE: admin apaga até a visão pessoal de outra pessoa; admin desativado perde o poder', async () => {
+  const s = await iniciar();
+  try {
+    await s.json('POST', '/api/pessoas', { nome: 'Ana' });
+    const chefe = await s.json('POST', '/api/pessoas', { nome: 'Chefe', admin: true });
+    await s.json('POST', '/api/visoes', faturasP1);
+
+    await s.json('PUT', '/api/pessoas/chefe', { nome: 'Chefe', ativa: false, versao: chefe.corpo.versao });
+    assert.equal((await s.json('DELETE', '/api/visoes/so-faturas-p1?voce=chefe')).status, 404);
+
+    const atual = (await s.json('GET', '/api/pessoas')).corpo.pessoas.find((p: Json) => p.id === 'chefe');
+    await s.json('PUT', '/api/pessoas/chefe', { nome: 'Chefe', ativa: true, versao: atual.versao });
+    assert.equal((await s.json('DELETE', '/api/visoes/so-faturas-p1?voce=chefe')).status, 204);
+  } finally {
+    await s.fechar();
+  }
+});
+
+test('POST/PUT de pessoa: admin deve ser verdadeiro ou falso', async () => {
+  const s = await iniciar();
+  try {
+    const ruim = await s.json('POST', '/api/pessoas', { nome: 'Ana', admin: 'sim' });
+    assert.equal(ruim.status, 400);
+    assert.deepEqual(ruim.corpo.mensagens, ['Admin deve ser verdadeiro ou falso.']);
   } finally {
     await s.fechar();
   }

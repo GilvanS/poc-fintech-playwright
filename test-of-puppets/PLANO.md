@@ -599,6 +599,21 @@ Execuções (1)
 > Colunas de vidro com tom do status (cinza-verde, cyan, amarelo, verde), ponto de cor + contagem em pílula (o texto "Em andamento (2/3)"
 > continua para leitores de tela); cards com chip de funcionalidade, prioridade (cores P1/P2/P3), data ("Hoje" verde, atrasada vermelha,
 > senão "5 out"), massa, INC, bloqueio, avatar do responsável e o "Mover para". Código: `CartaoKanban.tsx`, `Kanban.tsx`.
+### T1.1 — Cadastro de cenários em SQLite + CSV de controle (15/10/2026) — ✔ FEITO
+
+> **Pedido do usuário:** a biblioteca de testes cadastrados (reaproveitável em planos futuros) num SQLite, com limite para não estourar o
+> GitHub, tela para listar/detalhar/atualizar, **importar e exportar CSV** pelas regras de cada campo. **Onde fica:** menu *Massa & Sistema →
+> Cenários e massa*; dados em `dados/cenarios.db` (`node:sqlite` do Node 24, sem pacote; **não vai para o git**); CSV de controle em
+> `controle/cenarios.csv` (**vai para o git**, regravado a cada mudança). O `cenarios.json` antigo é migrado sozinho (vira `.migrado`).
+> **Campos:** os de antes + `feature` (até 120) e `projeto` (até 60). **Limites** (`server/src/cenarios/limites.ts`): 5.000 cenários (aviso
+> aos 4.000), banco de 25 MB (aviso aos 20), CSV de importação de 5 MB / 5.000 linhas; passar do teto dá 409 `limite_cenarios`.
+> **CSV:** `;`, UTF-8 com BOM, colunas `ID;Nome;Funcionalidade;Feature;Projeto;Massa;CPF;Passos;Resultado esperado` (a importação aceita também
+> `,`/tab, títulos com acento/variações e ID em minúsculas). `GET /api/cenarios/exportar.csv`; `POST /api/cenarios/importar` com
+> `{csv, modo}`: `previa` só confere (novo/existente/igual/erro, com o número da linha), `ignorar`/`atualizar` grava tudo-ou-nada em transação
+> (linhas com erro ficam de fora). O ID `CTnn.n` é a chave. **Tela:** colunas Feature/Projeto, filtros por funcionalidade e projeto,
+> medidor de armazenamento, popup de detalhe (dados, planos onde está, Editar/Excluir), Exportar CSV e painel Importar CSV.
+> Cuidado: o Excel apaga zero à esquerda de número solto (massa `0484`); o CPF sai com pontuação por isso.
+
 ### T7 — Cronômetro do teste: ▶ iniciar, ⏸ pausar, ■ registrar (P) — ✔ FEITA (05/10/2026)
 
 > **Esclarecimento do usuário em 05/10/2026:** a ferramenta é só para **acompanhar e organizar** (sem depender do Excel no futuro). **Não

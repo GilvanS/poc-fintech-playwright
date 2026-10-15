@@ -1,0 +1,9 @@
+﻿ID;Nome;Funcionalidade;Feature;Projeto;Massa;CPF;Passos;Resultado esperado
+CT03.1;Pagar valor total;Faturas;;;0481;111.444.777-35;tests/features/faturas.feature#CT03.1;Fatura quitada e saldo devedor zerado
+CT03.2;Pagar valor mínimo;Faturas;;;0483;529.982.247-25;tests/features/faturas.feature#CT03.2;"Pagamento mínimo registrado; encargos seguem sobre o restante"
+CT03.3;Pagar valor parcial;Faturas;;;0484;390.533.447-05;tests/features/faturas.feature#CT03.3;Pagamento parcial abatido da fatura
+CT03.7;Pagar fatura vencida;Faturas;;;0483;529.982.247-25;tests/features/faturas.feature#CT03.7;"Fatura vencida paga com encargos; segue o estado deixado pelo CT03.2"
+CT04.1;Enviar Pix por chave;Pix;;;0510;862.883.667-57;tests/features/pix.feature#CT04.1;Pix enviado e saldo atualizado
+CT04.2;Agendar Pix;Pix;;;0511;168.995.350-09;tests/features/pix.feature#CT04.2;Pix agendado aparece na lista de agendamentos
+CT05.1;Cadastro PF;Cadastro;;;0520;714.287.938-60;tests/features/cadastro.feature#CT05.1;Usuário PF criado e consegue entrar
+CT05.2;Cadastro duplicado;Cadastro;;;0521;453.178.287-91;tests/features/cadastro.feature#CT05.2;Sistema recusa o CPF já cadastrado com mensagem clara

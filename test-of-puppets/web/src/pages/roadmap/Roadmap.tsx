@@ -41,22 +41,43 @@ export default function Roadmap({ hoje: hojeProp, onIrParaPlanos }: Props) {
   const [atualizando, setAtualizando] = useState(false);
   const [aberto, setAberto] = useState<{ planoId: string; idCenario?: string } | null>(null);
   const arrastando = useRef<Arrasto | null>(null);
+  // Só vale a resposta da leitura mais recente: uma leitura lenta e antiga não pode desfazer uma gravação recém-relida.
+  const leitura = useRef(0);
 
-  const carregar = useCallback(async () => {
-    setAtualizando(true);
+  /** `silencioso`: releitura automática, sem o giro do botão e sem trocar o que está na tela por um erro passageiro. */
+  const carregar = useCallback(async (silencioso = false) => {
+    const minha = ++leitura.current;
+    if (!silencioso) setAtualizando(true);
     try {
       const resumos = await listarPlanos();
-      setPlanos(await Promise.all(resumos.map((p) => obterPlano(p.id))));
+      const detalhes = await Promise.all(resumos.map((p) => obterPlano(p.id)));
+      if (minha !== leitura.current) return;
+      setPlanos(detalhes);
       setErro(null);
     } catch (e) {
-      setErro(mensagemDe(e));
+      if (!silencioso && minha === leitura.current) setErro(mensagemDe(e));
     } finally {
-      setAtualizando(false);
+      if (!silencioso) setAtualizando(false); // mesmo se outra leitura passou na frente, o giro do botão acaba
     }
   }, []);
 
   useEffect(() => {
     void carregar();
+  }, [carregar]);
+
+  // O plano pode mudar fora desta tela (outra aba, outra pessoa): relê ao voltar o foco e a cada 10 s com a aba à vista.
+  useEffect(() => {
+    const reler = () => {
+      if (document.visibilityState === 'visible' && !arrastando.current) void carregar(true);
+    };
+    const relogio = window.setInterval(reler, 10_000);
+    window.addEventListener('focus', reler);
+    document.addEventListener('visibilitychange', reler);
+    return () => {
+      window.clearInterval(relogio);
+      window.removeEventListener('focus', reler);
+      document.removeEventListener('visibilitychange', reler);
+    };
   }, [carregar]);
 
   const janela = useMemo(() => montarJanela(zoom, inicio), [zoom, inicio]);

@@ -194,6 +194,55 @@ describe('Roadmap — arrastar datas', () => {
   });
 });
 
+describe('Roadmap — atualização automática', () => {
+  /** Muda o plano "por fora" (outra aba/pessoa): vai direto ao servidor falso, sem passar pela tela. */
+  const mudarPorFora = async (api: ReturnType<typeof criarApiFalsa>) => {
+    const r = await api.falso('/api/planos/pl_master/testes/CT03.3', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ versao: 1, dataPlanejada: '2026-10-08' }),
+    });
+    expect(r.ok).toBe(true);
+  };
+
+  it('uma mudança feita fora aparece sozinha quando a janela recebe o foco de volta', async () => {
+    const { api } = await abrir();
+    expect(barra('CT03.3: planejado em 06/10/2026')).toBeInTheDocument();
+    await mudarPorFora(api);
+    expect(screen.queryByRole('button', { name: 'CT03.3: planejado em 08/10/2026' })).toBeNull(); // ainda não releu
+
+    fireEvent(window, new Event('focus'));
+    expect(await screen.findByRole('button', { name: 'CT03.3: planejado em 08/10/2026' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'CT03.3: planejado em 06/10/2026' })).toBeNull();
+  });
+
+  it('e também a cada 10 segundos, sem girar o botão Atualizar', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { api } = await abrir();
+      await mudarPorFora(api);
+      await vi.advanceTimersByTimeAsync(10_500);
+      expect(await screen.findByRole('button', { name: 'CT03.3: planejado em 08/10/2026' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Atualizar' })).toBeEnabled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('com a aba escondida não relê', async () => {
+    const { api } = await abrir();
+    await mudarPorFora(api);
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    try {
+      fireEvent(window, new Event('focus'));
+      await new Promise((r) => setTimeout(r, 200));
+      expect(screen.queryByRole('button', { name: 'CT03.3: planejado em 08/10/2026' })).toBeNull();
+    } finally {
+      delete (document as unknown as Record<string, unknown>).visibilityState;
+    }
+  });
+});
+
 describe('Roadmap — abrir', () => {
   it('clicar na barra do teste abre o detalhe do teste; clicar na do plano abre o plano', async () => {
     await abrir();

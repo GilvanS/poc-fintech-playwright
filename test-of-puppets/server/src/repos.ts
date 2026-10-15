@@ -12,6 +12,9 @@ import { criarRepoVisoes, type RepoVisoes } from './visoes/repo.ts';
 /** Pasta `dados/` da própria ferramenta (nunca a pasta `data/` do projeto de testes). */
 export const DADOS_PADRAO = resolve(fileURLToPath(new URL('../../dados', import.meta.url)));
 
+/** CSV de controle dos cenários: fica fora de `dados/` de propósito, porque este é o arquivo que vai para o git. */
+export const CONTROLE_PADRAO = resolve(fileURLToPath(new URL('../../controle', import.meta.url)));
+
 export interface Repos {
   cenarios: RepoCenarios;
   planos: RepoPlanos;
@@ -25,7 +28,12 @@ export interface Repos {
 
 /** Monta os repositórios ligados entre si, gravando em `dirDados`. */
 export function criarRepos(dirDados: string): Repos {
-  const cenarios = criarRepoCenarios(join(dirDados, 'cenarios.json'));
+  // Na pasta real o CSV vai para `controle/` (versionado); em pasta de teste fica junto, sem tocar no repositório.
+  const dirControle = resolve(dirDados) === resolve(DADOS_PADRAO) ? CONTROLE_PADRAO : join(dirDados, 'controle');
+  const cenarios = criarRepoCenarios(join(dirDados, 'cenarios.db'), {
+    caminhoJsonAntigo: join(dirDados, 'cenarios.json'),
+    caminhoCsv: join(dirControle, 'cenarios.csv'),
+  });
   const planos = criarRepoPlanos(join(dirDados, 'planos.json'), { catalogo: () => cenarios.listar() });
   const pessoas = criarRepoPessoas(join(dirDados, 'pessoas.json'), { planosComResponsavel: (id) => planos.planosComResponsavel(id) });
   const visoes = criarRepoVisoes(join(dirDados, 'visoes.json'));

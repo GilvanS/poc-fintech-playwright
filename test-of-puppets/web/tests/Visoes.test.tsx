@@ -170,16 +170,66 @@ describe('Visões salvas', () => {
     expect(api.escritas()).toEqual([]);
   });
 
-  it('"Excluir visão" apaga no servidor, tira do menu e volta para Planos', async () => {
-    const { api } = await entrar({ visoes: [faturasP1], pessoas: [pessoa('ana')] });
+  const confirmarExclusao = async () => {
+    const popup = await screen.findByRole('alertdialog', { name: 'Confirmar exclusão da visão' });
+    await userEvent.click(within(popup).getByRole('button', { name: 'Excluir' }));
+  };
+
+  it('admin: "Excluir visão" na página pede confirmação, apaga no servidor, tira do menu e volta para Planos', async () => {
+    const { api } = await entrar({ visoes: [faturasP1], pessoas: [pessoa('ana', { admin: true })] });
     await vi.waitFor(() => expect(screen.getByLabelText('Você')).toBeInTheDocument());
     await userEvent.selectOptions(screen.getByLabelText('Você'), 'ana');
     await userEvent.click(await within(menu()).findByRole('button', { name: 'Só Faturas P1' }));
     await userEvent.click(screen.getByRole('button', { name: 'Excluir visão' }));
+    expect(screen.getByText('Excluir a visão Só Faturas P1?')).toBeInTheDocument();
+    expect(api.escritas().filter((e) => e.metodo === 'DELETE')).toEqual([]); // ainda não apagou
+    await confirmarExclusao();
 
     await vi.waitFor(() => expect(within(menu()).queryByRole('button', { name: 'Só Faturas P1' })).toBeNull());
     expect(api.escritas()).toContainEqual({ metodo: 'DELETE', caminho: '/api/visoes/so-faturas-p1?voce=ana', corpo: undefined });
     expect(screen.getByRole('heading', { level: 2, name: 'Planos' })).toBeInTheDocument();
+  });
+
+  it('admin: a lixeira ao lado da visão no menu exclui sem sair da tela atual; "Manter" desiste', async () => {
+    const { api } = await entrar({ visoes: [faturasP1], pessoas: [pessoa('ana', { admin: true })] });
+    await vi.waitFor(() => expect(screen.getByLabelText('Você')).toBeInTheDocument());
+    await userEvent.selectOptions(screen.getByLabelText('Você'), 'ana');
+    await userEvent.click(await within(menu()).findByRole('button', { name: 'Excluir visão Só Faturas P1' }));
+    await userEvent.click(within(screen.getByRole('alertdialog', { name: 'Confirmar exclusão da visão' })).getByRole('button', { name: 'Manter' }));
+    expect(within(menu()).getByRole('button', { name: 'Só Faturas P1' })).toBeInTheDocument();
+    expect(api.escritas().filter((e) => e.metodo === 'DELETE')).toEqual([]);
+
+    await userEvent.click(within(menu()).getByRole('button', { name: 'Excluir visão Só Faturas P1' }));
+    await confirmarExclusao();
+    await vi.waitFor(() => expect(within(menu()).queryByRole('button', { name: 'Só Faturas P1' })).toBeNull());
+    expect(screen.getByRole('heading', { level: 2, name: 'Planos' })).toBeInTheDocument();
+  });
+
+  it('ninguém escolhido em "Você" vale como admin: a lixeira aparece numa visão compartilhada', async () => {
+    await entrar({ visoes: [faturasP1], pessoas: [pessoa('ana')] });
+    expect(await within(menu()).findByRole('button', { name: 'Excluir visão Só Faturas P1' })).toBeInTheDocument();
+  });
+
+  it('quem não é admin não vê a lixeira nem "Excluir visão" numa visão compartilhada', async () => {
+    await entrar({ visoes: [faturasP1], pessoas: [pessoa('ana')] });
+    await vi.waitFor(() => expect(screen.getByLabelText('Você')).toBeInTheDocument());
+    await userEvent.selectOptions(screen.getByLabelText('Você'), 'ana');
+    await userEvent.click(await within(menu()).findByRole('button', { name: 'Só Faturas P1' }));
+    expect(screen.queryByRole('button', { name: 'Excluir visão' })).toBeNull();
+    expect(within(menu()).queryByRole('button', { name: 'Excluir visão Só Faturas P1' })).toBeNull();
+  });
+
+  it('quem não é admin exclui a própria visão pessoal, mas não a pessoal de outra pessoa (que nem aparece)', async () => {
+    const minha = visao('minha', 'Minha', { dono: 'ana', compartilhada: false });
+    const { api } = await entrar({ visoes: [minha, visao('da-bia', 'Da Bia', { dono: 'bia' })], pessoas: [pessoa('ana'), pessoa('bia')] });
+    await vi.waitFor(() => expect(screen.getByLabelText('Você')).toBeInTheDocument());
+    await userEvent.selectOptions(screen.getByLabelText('Você'), 'ana');
+    await within(menu()).findByRole('button', { name: 'Minha' });
+    expect(within(menu()).queryByRole('button', { name: 'Excluir visão Da Bia' })).toBeNull();
+    await userEvent.click(within(menu()).getByRole('button', { name: 'Excluir visão Minha' }));
+    await confirmarExclusao();
+    await vi.waitFor(() => expect(within(menu()).queryByRole('button', { name: 'Minha' })).toBeNull());
+    expect(api.escritas()).toContainEqual({ metodo: 'DELETE', caminho: '/api/visoes/minha?voce=ana', corpo: undefined });
   });
 
   it('visão pessoal de outra pessoa não aparece no menu', async () => {
@@ -209,18 +259,35 @@ describe('Nova visão (M11)', () => {
     expect(outra).not.toBeInTheDocument();
   });
 
-  it('mostra os 9 modelos; só Lista e Kanban estão disponíveis, o resto avisa "Em breve"', async () => {
+  it('mostra os 9 modelos, todos disponíveis (nenhum "Em breve"); Roadmap esconde os filtros iniciais', async () => {
     await entrar();
     const modal = await abrir();
     const modelos = within(within(modal).getByRole('radiogroup', { name: 'Escolha um modelo' })).getAllByRole('radio');
     expect(modelos).toHaveLength(9);
-    expect(modelos.filter((m) => !(m as HTMLButtonElement).disabled).map((m) => m.textContent)).toEqual([
-      'Listatabela com todos os testes',
-      'Kanbancolunas por status',
-    ]);
-    expect(within(modal).getByRole('radio', { name: /Roadmap/ })).toBeDisabled();
-    expect(within(modal).getByText('Em breve (T13.6)')).toBeInTheDocument();
+    expect(modelos.every((m) => !(m as HTMLButtonElement).disabled)).toBe(true);
+    expect(within(modal).queryByText(/Em breve/)).toBeNull();
     expect(within(modal).getByRole('radio', { name: /Kanban/ })).toHaveAttribute('aria-checked', 'true');
+    expect(within(modal).getByLabelText('Prioridade')).toBeVisible();
+
+    await userEvent.click(within(modal).getByRole('radio', { name: /Roadmap/ }));
+    expect(within(modal).getByRole('radio', { name: /Roadmap/ })).toHaveAttribute('aria-checked', 'true');
+    expect(within(modal).getByText('Este modelo mostra o plano inteiro: não tem filtros iniciais.')).toBeInTheDocument();
+    expect(within(modal).queryByLabelText('Prioridade')).toBeNull();
+  });
+
+  it('criar uma visão de Roadmap grava o tipo, sem filtros, e abre a tela do Roadmap com a faixa da visão', async () => {
+    const { api } = await entrar();
+    const modal = await abrir();
+    await userEvent.type(within(modal).getByLabelText('Nome'), 'Meu roadmap');
+    await userEvent.click(within(modal).getByRole('radio', { name: /Roadmap/ }));
+    await userEvent.click(within(modal).getByRole('button', { name: 'Criar visão' }));
+
+    expect(await screen.findByText('Visão salva: Meu roadmap')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Roadmap' })).toBeInTheDocument();
+    // Ninguém escolhido em "Você" = dono da máquina, vale como admin: a visão nasce compartilhada e dá para excluir.
+    expect(screen.getByRole('button', { name: 'Excluir visão' })).toBeInTheDocument();
+    const post = api.escritas().find((e) => e.metodo === 'POST' && e.caminho === '/api/visoes');
+    expect(post?.corpo).toMatchObject({ nome: 'Meu roadmap', tipo: 'roadmap', filtros: { funcionalidade: '', responsavel: '', prioridade: '' } });
   });
 
   it('só habilita "Criar visão" com nome', async () => {

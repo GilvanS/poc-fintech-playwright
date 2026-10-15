@@ -11,7 +11,7 @@ export interface OpcoesSemente {
   agora?: () => Date;
 }
 
-const ARQUIVOS = ['cenarios.json', 'pessoas.json', 'planos.json', 'incidentes.json', 'retros.json', 'lembretes.json'];
+const ARQUIVOS = ['cenarios.db', 'cenarios.json', 'pessoas.json', 'planos.json', 'incidentes.json', 'retros.json', 'lembretes.json'];
 
 const dois = (n: number) => String(n).padStart(2, '0');
 const carimbo = (d: Date) =>

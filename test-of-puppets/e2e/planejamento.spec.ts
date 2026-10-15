@@ -44,6 +44,37 @@ test('Roadmap: barra do teste na data planejada, arrastar muda o dia no servidor
   await expect(page.getByRole('dialog', { name: 'Detalhe do teste' })).toBeVisible();
 });
 
+test('Roadmap: mudança no plano feita por fora (outra aba/pessoa) aparece sozinha, sem clicar em Atualizar', async ({ page, request }) => {
+  await resetar(request);
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const brasil = (s: string) => s.split('-').reverse().join('/');
+  const diaUtil = (depoisDe: Date) => {
+    const d = new Date(depoisDe);
+    do d.setDate(d.getDate() + 1);
+    while (d.getDay() === 0 || d.getDay() === 6);
+    return d;
+  };
+  const primeiro = diaUtil(new Date());
+  const segundo = diaUtil(primeiro);
+
+  expect((await request.post(`${URL_API}/api/cenarios`, { data: { idCenario: 'CT91.1', nome: 'Roadmap sozinho', funcionalidade: 'Roadmap' } })).ok()).toBeTruthy();
+  const criado = (await (await request.post(`${URL_API}/api/planos`, { data: { nome: 'Sozinho E2E', idCenarios: ['CT91.1'] } })).json()) as { plano: { id: string }; itens: { versao: number }[] };
+  const planoId = criado.plano.id;
+  const alterar = async (dia: Date) => {
+    const atual = (await (await request.get(`${URL_API}/api/planos/${planoId}`)).json()) as { itens: { versao: number }[] };
+    expect((await request.patch(`${URL_API}/api/planos/${planoId}/testes/CT91.1`, { data: { versao: atual.itens[0].versao, dataPlanejada: iso(dia) } })).ok()).toBeTruthy();
+  };
+  await alterar(primeiro);
+
+  await abrirApp(page);
+  await irPara(page, 'Roadmap');
+  await expect(page.getByRole('button', { name: `CT91.1: planejado em ${brasil(iso(primeiro))}` })).toBeVisible();
+
+  await alterar(segundo); // "outra aba": a tela não sabe
+  await expect(page.getByRole('button', { name: `CT91.1: planejado em ${brasil(iso(segundo))}` })).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByRole('button', { name: `CT91.1: planejado em ${brasil(iso(primeiro))}` })).toHaveCount(0);
+});
+
 test('Lançamento: quadro por funcionalidade do plano escolhido e o clique na célula abre a Lista filtrada', async ({ page, request }) => {
   await resetar(request, true);
   await abrirApp(page);

@@ -100,6 +100,7 @@ export default function Equipe() {
                         <span className={`h-2.5 w-2.5 rounded-full ${CLASSE_COR[p.cor]}`} aria-hidden />
                         <span className="font-bold">{p.nome}</span>
                         {voce?.id === p.id && <span className="rounded-full border border-volt-green/30 px-2 py-0.5 text-[10px] font-black text-volt-green">Você</span>}
+                        {p.admin && <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] font-black text-on-surface-variant">Admin</span>}
                       </span>
                     </td>
                     <td className="py-3 pr-4">{formatarCapacidade(p.capacidadeMinSemana)}</td>

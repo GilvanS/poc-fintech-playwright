@@ -149,6 +149,9 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
       const alvo = visoes.find((v) => v.id === partes[2]);
       if (!alvo || !enxerga(alvo)) return json(404, { erro: 'nao_encontrado', mensagem: `Visão ${partes[2]} não encontrada.` });
       if (metodo === 'DELETE') {
+        // Mesma regra do servidor: visão compartilhada só admin apaga.
+        const admin = voce === null || pessoas.some((p) => p.id === voce && p.admin && p.ativa);
+        if (!admin && alvo.compartilhada) return json(403, { erro: 'sem_permissao', mensagem: 'Só quem é admin pode excluir uma visão compartilhada.' });
         visoes = visoes.filter((v) => v !== alvo);
         return json(204, null);
       }
@@ -168,6 +171,7 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
           ...(corpo?.capacidadeMinSemana !== undefined ? { capacidadeMinSemana: Number(corpo.capacidadeMinSemana) } : {}),
           ...(corpo?.cor ? { cor: corpo.cor as Pessoa['cor'] } : {}),
           ...(corpo?.ativa !== undefined ? { ativa: Boolean(corpo.ativa) } : {}),
+          ...(corpo?.admin !== undefined ? { admin: Boolean(corpo.admin) } : {}),
         });
         pessoas = [...pessoas, nova];
         return json(201, nova);
@@ -182,6 +186,7 @@ export function criarApiFalsa(opcoes: Opcoes = {}) {
           capacidadeMinSemana: corpo?.capacidadeMinSemana !== undefined ? Number(corpo.capacidadeMinSemana) : atual.capacidadeMinSemana,
           cor: (corpo?.cor as Pessoa['cor'] | undefined) ?? atual.cor,
           ativa: corpo?.ativa !== undefined ? Boolean(corpo.ativa) : atual.ativa,
+          admin: corpo?.admin !== undefined ? Boolean(corpo.admin) : atual.admin,
           versao: atual.versao + 1,
         };
         pessoas = pessoas.map((p) => (p === atual ? nova : p));

@@ -17,7 +17,10 @@ export type CodigoErro =
   | 'teste_iniciado'
   | 'ja_no_plano'
   | 'plano_concluido'
-  | 'cronometro_invalido';
+  | 'cronometro_invalido'
+  | 'sem_permissao'
+  | 'csv_invalido'
+  | 'limite_cenarios';
 
 /** Status HTTP de cada erro esperado do dia a dia. Qualquer outro erro vira 500. */
 export const STATUS_POR_ERRO: Record<CodigoErro, number> = {
@@ -40,6 +43,9 @@ export const STATUS_POR_ERRO: Record<CodigoErro, number> = {
   ja_no_plano: 409,
   plano_concluido: 409,
   cronometro_invalido: 409,
+  sem_permissao: 403,
+  csv_invalido: 400,
+  limite_cenarios: 409,
 };
 
 export class ErroNegocio extends Error {

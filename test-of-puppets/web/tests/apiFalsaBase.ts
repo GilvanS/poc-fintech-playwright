@@ -42,6 +42,7 @@ export function pessoa(id: string, extra: Partial<Pessoa> = {}): Pessoa {
     capacidadeMinSemana: 0,
     cor: 'azul',
     ativa: true,
+    admin: false,
     versao: 1,
     criadoEm: CRIADO,
     atualizadoEm: CRIADO,

@@ -10,8 +10,11 @@ export interface RepoVisoes {
   /** Todas as visões gravadas; quem filtra por pessoa é a rota (`visiveisPara`). */
   listar(): Promise<Visao[]>;
   criar(campos: CamposVisao): Promise<Visao>;
-  /** Visão pessoal só some pela mão do dono; para os outros ela nem existe. Compartilhada qualquer pessoa apaga. */
-  excluir(id: string, quem: string | null): Promise<void>;
+  /**
+   * Admin apaga qualquer visão. As demais pessoas só apagam a própria visão pessoal (a pessoal de outra pessoa nem existe para
+   * elas: 404). Visão compartilhada só o admin apaga (403 `sem_permissao` para quem não é).
+   */
+  excluir(id: string, quem: string | null, admin: boolean): Promise<void>;
 }
 
 interface Opcoes {
@@ -58,12 +61,15 @@ export function criarRepoVisoes(caminho: string, { agora = () => new Date() }: O
       });
     },
 
-    excluir(id, quem) {
+    excluir(id, quem, admin) {
       return emFila(async () => {
         const { visoes } = await ler();
         const atual = visoes.find((v) => v.id === id);
-        if (!atual || (!atual.compartilhada && atual.dono !== quem)) {
+        if (!atual || (!admin && !atual.compartilhada && atual.dono !== quem)) {
           throw new ErroNegocio('nao_encontrado', `Visão ${id} não encontrada.`);
+        }
+        if (!admin && atual.compartilhada) {
+          throw new ErroNegocio('sem_permissao', 'Só quem é admin pode excluir uma visão compartilhada.');
         }
         await gravar(visoes.filter((v) => v.id !== id));
       });

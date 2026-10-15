@@ -12,7 +12,7 @@ test('visão salva: cria pelo M11, aparece no menu com os filtros, sobrevive a r
   await irPara(page, 'Nova visão');
   const modal = page.getByRole('dialog', { name: 'Nova visão' });
   await modal.getByLabel('Nome').fill('Só Faturas P1');
-  await expect(modal.getByRole('radio', { name: /Roadmap/ })).toBeDisabled();
+  await expect(modal.getByRole('radio', { name: /Roadmap/ })).toBeEnabled();
   await expect(modal.getByLabel('Funcionalidade').locator('option', { hasText: 'Faturas' })).toHaveCount(1);
   await modal.getByLabel('Funcionalidade').selectOption('Faturas');
   await modal.getByLabel('Prioridade').selectOption('P1');
@@ -36,9 +36,35 @@ test('visão salva: cria pelo M11, aparece no menu com os filtros, sobrevive a r
   await irPara(page, 'Só Faturas P1');
   await expect(page.getByLabel('Prioridade')).toHaveValue('P1');
 
-  await page.getByRole('button', { name: 'Excluir visão' }).click();
+  // Visão pessoal: a dona (Ana, que não é admin) exclui, depois de confirmar.
+  await page.getByTestId('pagina').getByRole('button', { name: 'Excluir visão', exact: true }).click();
+  await page.getByRole('alertdialog', { name: 'Confirmar exclusão da visão' }).getByRole('button', { name: 'Excluir', exact: true }).click();
   await expect(menu(page).getByRole('button', { name: 'Só Faturas P1' })).toHaveCount(0);
   await expect(page.getByRole('heading', { level: 2, name: 'Planos' })).toBeVisible();
+});
+
+test('excluir visão compartilhada: só admin vê a lixeira no menu; quem não é admin não vê', async ({ page, request }) => {
+  await resetar(request, true);
+  const criada = await request.post(`${URL_API}/api/visoes`, { data: { nome: 'Da equipe', tipo: 'release', dono: 'ana', compartilhada: true } });
+  expect(criada.ok()).toBeTruthy();
+  const ana = (await (await request.get(`${URL_API}/api/pessoas`)).json()) as { pessoas: { id: string; versao: number }[] };
+  const versao = ana.pessoas.find((p) => p.id === 'ana')!.versao;
+  expect((await request.put(`${URL_API}/api/pessoas/ana`, { data: { nome: 'Ana', admin: true, versao } })).ok()).toBeTruthy();
+
+  await abrirApp(page);
+  await page.getByRole('combobox', { name: 'Você' }).selectOption('bia');
+  await menu(page).getByRole('button', { name: 'Grupo Minhas visões' }).click();
+  await expect(menu(page).getByRole('button', { name: 'Da equipe', exact: true })).toBeVisible();
+  await expect(menu(page).getByRole('button', { name: 'Excluir visão Da equipe' })).toHaveCount(0); // Bia não é admin
+
+  await page.getByRole('combobox', { name: 'Você' }).selectOption('ana');
+  await menu(page).getByRole('button', { name: 'Da equipe', exact: true }).hover(); // no trilho a lixeira aparece ao passar o mouse
+  await menu(page).getByRole('button', { name: 'Excluir visão Da equipe' }).click();
+  const confirmar = page.getByRole('alertdialog', { name: 'Confirmar exclusão da visão' });
+  await expect(confirmar).toBeVisible();
+  await confirmar.getByRole('button', { name: 'Excluir', exact: true }).click();
+  await expect(menu(page).getByRole('button', { name: 'Da equipe', exact: true })).toHaveCount(0);
+  expect(((await (await request.get(`${URL_API}/api/visoes`)).json()) as { visoes: unknown[] }).visoes).toHaveLength(0);
 });
 
 test('Kanban: limite de WIP macio avisa, deixa soltar mesmo assim e o M13 grava o novo limite', async ({ page, request }) => {

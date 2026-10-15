@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { createApp } from '../src/app.ts';
+import { criarRepoCenarios } from '../src/cenarios/repo.ts';
 import { executarSemente } from '../src/semente/executar.ts';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -230,19 +231,26 @@ test('executarSemente em pasta vazia semeia e devolve código 0', async () => {
   assert.equal(codigo, 0);
   assert.match(saida.join('\n'), /8 cenários, 3 pessoas, 3 planos, 3 incidentes, 1 retro e 1 decisão de release/);
   const nomes = (await readdir(dir)).sort();
-  assert.ok(nomes.includes('cenarios.json') && nomes.includes('pessoas.json') && nomes.includes('planos.json'));
+  assert.ok(nomes.includes('cenarios.db') && nomes.includes('pessoas.json') && nomes.includes('planos.json'));
 });
 
-test('executarSemente com dados existentes recusa (código 1), explica o --forcar e não mexe em nada', async () => {
+/** Uma pasta de dados que já tem um cenário "meu" no banco. */
+async function pastaComCenarioMeu(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'puppets-cli-'));
-  const meu = JSON.stringify({ cenarios: [{ idCenario: 'CT01.1', nome: 'Meu', funcionalidade: 'X', versao: 1, criadoEm: 'a', atualizadoEm: 'a' }] });
-  await writeFile(join(dir, 'cenarios.json'), meu, 'utf8');
+  await criarRepoCenarios(join(dir, 'cenarios.db')).criar({ idCenario: 'CT01.1', nome: 'Meu', funcionalidade: 'X' });
+  return dir;
+}
+
+test('executarSemente com dados existentes recusa (código 1), explica o --forcar e não mexe em nada', async () => {
+  const dir = await pastaComCenarioMeu();
+  const antes = await readFile(join(dir, 'cenarios.db'));
   const saida: string[] = [];
   const codigo = await executarSemente({ dirDados: dir, forcar: false, escrever: (t) => saida.push(t) });
   assert.equal(codigo, 1);
   assert.match(saida.join('\n'), /--forcar/);
-  assert.equal(await readFile(join(dir, 'cenarios.json'), 'utf8'), meu);
-  assert.equal((await readdir(dir)).length, 1);
+  assert.deepEqual(await readdir(dir), ['cenarios.db']);
+  assert.deepEqual(await readFile(join(dir, 'cenarios.db')), antes);
+  assert.deepEqual((await criarRepoCenarios(join(dir, 'cenarios.db')).listar()).map((c) => c.idCenario), ['CT01.1']);
 });
 
 test('executarSemente --forcar sobre uma semente antiga guarda também a retro e semeia uma nova', async () => {
@@ -258,15 +266,12 @@ test('executarSemente --forcar sobre uma semente antiga guarda também a retro e
 });
 
 test('executarSemente --forcar guarda uma cópia dos arquivos antigos numa subpasta e semeia', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'puppets-cli-'));
-  const meu = JSON.stringify({ cenarios: [{ idCenario: 'CT01.1', nome: 'Meu', funcionalidade: 'X', versao: 1, criadoEm: 'a', atualizadoEm: 'a' }] });
-  await writeFile(join(dir, 'cenarios.json'), meu, 'utf8');
+  const dir = await pastaComCenarioMeu();
   const saida: string[] = [];
   const codigo = await executarSemente({ dirDados: dir, forcar: true, escrever: (t) => saida.push(t), agora: () => new Date(2026, 9, 3, 14, 5, 9) });
   assert.equal(codigo, 0);
   const copia = join(dir, 'antes-da-semente-20261003-140509');
-  assert.equal(await readFile(join(copia, 'cenarios.json'), 'utf8'), meu);
-  const novo = JSON.parse(await readFile(join(dir, 'cenarios.json'), 'utf8')) as Json;
-  assert.equal(novo.cenarios.length, 8);
+  assert.deepEqual((await criarRepoCenarios(join(copia, 'cenarios.db')).listar()).map((c) => c.idCenario), ['CT01.1']);
+  assert.equal((await criarRepoCenarios(join(dir, 'cenarios.db')).listar()).length, 8);
   assert.match(saida.join('\n'), /antes-da-semente-20261003-140509/);
 });

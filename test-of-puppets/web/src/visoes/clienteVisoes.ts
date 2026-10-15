@@ -1,8 +1,8 @@
 import { pedir } from '../pages/cenarios/clienteApi.ts';
 import { SEM_FILTROS, type Filtros } from '../pages/planos/filtros.ts';
 
-/** Tipos de visão que já têm tela; os outros modelos da galeria chegam nas tarefas T13.4 em diante. */
-export type TipoVisao = 'lista' | 'kanban';
+/** Os 9 modelos da galeria; só `lista` e `kanban` usam os filtros da visão. */
+export type TipoVisao = 'lista' | 'kanban' | 'roadmap' | 'incidentes' | 'release' | 'lancamento' | 'iteracoes' | 'planejamento' | 'retro';
 
 export interface FiltrosVisao {
   funcionalidade: string;

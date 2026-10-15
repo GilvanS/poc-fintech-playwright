@@ -34,7 +34,8 @@ export function criarRepoPessoas(caminho: string, { agora = () => new Date(), pl
 
   return {
     async listar() {
-      return (await ler()).pessoas;
+      // Cadastro anterior ao campo `admin` não o tem: vale `false`.
+      return (await ler()).pessoas.map((p) => ({ ...p, admin: p.admin ?? false }));
     },
 
     criar(campos) {
@@ -50,6 +51,7 @@ export function criarRepoPessoas(caminho: string, { agora = () => new Date(), pl
           capacidadeMinSemana: campos.capacidadeMinSemana ?? 0,
           cor: campos.cor ?? 'azul',
           ativa: campos.ativa ?? true,
+          admin: campos.admin ?? false,
           versao: 1,
           criadoEm: instante,
           atualizadoEm: instante,
@@ -76,6 +78,7 @@ export function criarRepoPessoas(caminho: string, { agora = () => new Date(), pl
           capacidadeMinSemana: campos.capacidadeMinSemana ?? atual.capacidadeMinSemana,
           cor: campos.cor ?? atual.cor,
           ativa: campos.ativa ?? atual.ativa,
+          admin: campos.admin ?? atual.admin ?? false,
           versao: atual.versao + 1,
           atualizadoEm: agora().toISOString(),
         };

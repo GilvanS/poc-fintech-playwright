@@ -10,6 +10,8 @@ export interface Pessoa {
   cor: Cor;
   /** Pessoa inativa sai do seletor "Você" e da atribuição, mas continua nos testes que já tem. */
   ativa: boolean;
+  /** Admin pode excluir qualquer visão salva; as demais pessoas só a própria visão pessoal. Cadastro antigo sem o campo vale `false`. */
+  admin: boolean;
   versao: number;
   criadoEm: string;
   atualizadoEm: string;
@@ -20,6 +22,7 @@ export interface CamposPessoa {
   capacidadeMinSemana?: number;
   cor?: Cor;
   ativa?: boolean;
+  admin?: boolean;
 }
 
 export type ResultadoPessoa = { ok: true; valor: CamposPessoa } | { ok: false; mensagens: string[] };
@@ -49,6 +52,10 @@ export function validarPessoa(entrada: unknown): ResultadoPessoa {
   if (corpo.ativa !== undefined) {
     if (typeof corpo.ativa === 'boolean') valor.ativa = corpo.ativa;
     else mensagens.push('Ativa deve ser verdadeiro ou falso.');
+  }
+  if (corpo.admin !== undefined) {
+    if (typeof corpo.admin === 'boolean') valor.admin = corpo.admin;
+    else mensagens.push('Admin deve ser verdadeiro ou falso.');
   }
 
   return mensagens.length > 0 ? { ok: false, mensagens } : { ok: true, valor };

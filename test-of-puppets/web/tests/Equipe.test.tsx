@@ -57,7 +57,7 @@ describe('Equipe — cadastro e edição', () => {
     expect(await screen.findByTestId('pessoa-Ana')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(api.escritas()).toEqual([
-      { metodo: 'POST', caminho: '/api/pessoas', corpo: { nome: 'Ana', capacidadeMinSemana: 120, cor: 'verde', ativa: true } },
+      { metodo: 'POST', caminho: '/api/pessoas', corpo: { nome: 'Ana', capacidadeMinSemana: 120, cor: 'verde', ativa: true, admin: false } },
     ]);
   });
 
@@ -68,7 +68,7 @@ describe('Equipe — cadastro e edição', () => {
     await userEvent.type(within(modal).getByLabelText('Nome'), 'Bia');
     await userEvent.click(within(modal).getByRole('button', { name: 'Salvar pessoa' }));
     await screen.findByTestId('pessoa-Bia');
-    expect(api.escritas()[0].corpo).toEqual({ nome: 'Bia', cor: 'azul', ativa: true });
+    expect(api.escritas()[0].corpo).toEqual({ nome: 'Bia', cor: 'azul', ativa: true, admin: false });
   });
 
   it('edita: abre com os valores, manda PUT com a versão e a lista mostra o novo nome', async () => {
@@ -89,8 +89,22 @@ describe('Equipe — cadastro e edição', () => {
     expect(api.escritas()[0]).toEqual({
       metodo: 'PUT',
       caminho: '/api/pessoas/ana',
-      corpo: { nome: 'Ana Souza', capacidadeMinSemana: 120, cor: 'roxo', ativa: false, versao: 1 },
+      corpo: { nome: 'Ana Souza', capacidadeMinSemana: 120, cor: 'roxo', ativa: false, admin: false, versao: 1 },
     });
+  });
+
+  it('marcar "Admin" manda admin:true e a lista mostra o selo Admin só em quem é admin', async () => {
+    const api = await abrir({ pessoas: [pessoa('ana'), pessoa('bia')] });
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar Ana' }));
+    const modal = screen.getByRole('dialog', { name: 'Editar Ana' });
+    const caixa = within(modal).getByRole('checkbox', { name: 'Admin' });
+    expect(caixa).not.toBeChecked();
+    await userEvent.click(caixa);
+    await userEvent.click(within(modal).getByRole('button', { name: 'Salvar pessoa' }));
+
+    await vi.waitFor(() => expect(within(linha('Ana')).getByText('Admin')).toBeInTheDocument());
+    expect(within(linha('Bia')).queryByText('Admin')).toBeNull();
+    expect(api.escritas()[0].corpo).toMatchObject({ admin: true });
   });
 
   it('nome repetido: a mensagem do servidor aparece no modal, que continua aberto', async () => {

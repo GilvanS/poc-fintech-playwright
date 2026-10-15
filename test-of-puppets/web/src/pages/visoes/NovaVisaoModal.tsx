@@ -14,22 +14,23 @@ interface Props {
 interface Modelo {
   nome: string;
   descricao: string;
-  /** Tipo que a galeria cria hoje; os demais modelos aparecem desabilitados até a tarefa que os entrega. */
-  tipo?: TipoVisao;
-  tarefa?: string;
+  tipo: TipoVisao;
 }
 
 const MODELOS: Modelo[] = [
   { nome: 'Lista', descricao: 'tabela com todos os testes', tipo: 'lista' },
   { nome: 'Kanban', descricao: 'colunas por status', tipo: 'kanban' },
-  { nome: 'Roadmap', descricao: 'linha do tempo', tarefa: 'T13.6' },
-  { nome: 'Incidentes', descricao: 'falhas e severidade', tarefa: 'T13.5' },
-  { nome: 'Release', descricao: 'go / no-go', tarefa: 'T13.7' },
-  { nome: 'Lançamento', descricao: 'funcionalidade × status', tarefa: 'T13.8' },
-  { nome: 'Iterações', descricao: 'burndown e velocidade', tarefa: 'T13.9' },
-  { nome: 'Planejamento', descricao: 'capacidade da semana', tarefa: 'T13.10' },
-  { nome: 'Retro', descricao: 'notas, votos e ações', tarefa: 'T13.11' },
+  { nome: 'Roadmap', descricao: 'linha do tempo', tipo: 'roadmap' },
+  { nome: 'Incidentes', descricao: 'falhas e severidade', tipo: 'incidentes' },
+  { nome: 'Release', descricao: 'go / no-go', tipo: 'release' },
+  { nome: 'Lançamento', descricao: 'funcionalidade × status', tipo: 'lancamento' },
+  { nome: 'Iterações', descricao: 'burndown e velocidade', tipo: 'iteracoes' },
+  { nome: 'Planejamento', descricao: 'capacidade da semana', tipo: 'planejamento' },
+  { nome: 'Retro', descricao: 'notas, votos e ações', tipo: 'retro' },
 ];
+
+/** Só a Lista e o Kanban filtram por funcionalidade, responsável e prioridade; as outras telas mostram o plano inteiro. */
+const USA_FILTROS: TipoVisao[] = ['lista', 'kanban'];
 
 const campo =
   'w-full rounded-lg border border-white/10 bg-volt-page px-2.5 py-2 text-sm text-on-surface outline-none focus:border-volt-green/50';
@@ -80,7 +81,8 @@ export default function NovaVisaoModal({ onCriar, onFechar }: Props) {
     setErros([]);
     setSalvando(true);
     try {
-      await onCriar({ nome: nomeLimpo, tipo, dono: voce?.id ?? null, compartilhada, filtros: { funcionalidade, responsavel, prioridade } });
+      const filtros = USA_FILTROS.includes(tipo) ? { funcionalidade, responsavel, prioridade } : { funcionalidade: '', responsavel: '', prioridade: '' };
+      await onCriar({ nome: nomeLimpo, tipo, dono: voce?.id ?? null, compartilhada, filtros });
     } catch (erro) {
       setErros(erro instanceof ErroApi ? erro.mensagens : ['Não foi possível criar a visão.']);
       setSalvando(false);
@@ -109,33 +111,32 @@ export default function NovaVisaoModal({ onCriar, onFechar }: Props) {
             <span id="visao-modelo" className={rotulo}>Escolha um modelo</span>
             <div role="radiogroup" aria-labelledby="visao-modelo" className="grid gap-2 grid-cols-2 sm:grid-cols-3">
               {MODELOS.map((m) => {
-                const disponivel = m.tipo !== undefined;
-                const marcado = disponivel && m.tipo === tipo;
+                const marcado = m.tipo === tipo;
                 return (
                   <button
                     key={m.nome}
                     type="button"
                     role="radio"
                     aria-checked={marcado}
-                    disabled={!disponivel}
-                    onClick={() => m.tipo && setTipo(m.tipo)}
-                    className={`text-left rounded-xl border p-3 transition-colors ${
-                      marcado
-                        ? 'border-volt-green/50 bg-volt-green/10 cursor-pointer'
-                        : disponivel
-                          ? 'border-white/10 bg-white/5 hover:bg-white/10 cursor-pointer'
-                          : 'border-white/5 bg-white/[0.02] opacity-50 cursor-not-allowed'
+                    onClick={() => setTipo(m.tipo)}
+                    className={`text-left rounded-xl border p-3 transition-colors cursor-pointer ${
+                      marcado ? 'border-volt-green/50 bg-volt-green/10' : 'border-white/10 bg-white/5 hover:bg-white/10'
                     }`}
                   >
                     <span className="block text-sm font-black">{m.nome}</span>
                     <span className="block text-[11px] text-on-surface-variant">{m.descricao}</span>
-                    {!disponivel && <span className="block mt-1 text-[10px] font-bold text-on-surface-variant">{`Em breve (${m.tarefa})`}</span>}
                   </button>
                 );
               })}
             </div>
           </div>
 
+          {!USA_FILTROS.includes(tipo) && (
+            <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-on-surface-variant">
+              Este modelo mostra o plano inteiro: não tem filtros iniciais.
+            </p>
+          )}
+          {USA_FILTROS.includes(tipo) && (
           <fieldset className="grid gap-3 sm:grid-cols-3">
             <legend className={rotulo}>Filtros iniciais</legend>
             <div>
@@ -172,6 +173,7 @@ export default function NovaVisaoModal({ onCriar, onFechar }: Props) {
               </select>
             </div>
           </fieldset>
+          )}
 
           <div>
             <label className={`flex items-center gap-2 text-sm ${voce ? '' : 'opacity-60'}`}>

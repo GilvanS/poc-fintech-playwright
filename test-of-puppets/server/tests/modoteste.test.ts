@@ -39,8 +39,8 @@ test('em modo de teste, POST /api/teste/reset esvazia cenários, pessoas e plano
     const r = await s.json('POST', '/api/teste/reset');
     assert.equal(r.status, 200);
     assert.deepEqual(r.corpo, { ok: true, semente: false });
+    assert.deepEqual(await readdir(s.dir), []); // nem o banco, o CSV de controle ou as cópias .bak ficam
     assert.deepEqual(await contagens(s), { cenarios: 0, pessoas: 0, planos: 0 });
-    assert.deepEqual(await readdir(s.dir), []); // nem as cópias .bak ficam
   } finally {
     await s.fechar();
   }

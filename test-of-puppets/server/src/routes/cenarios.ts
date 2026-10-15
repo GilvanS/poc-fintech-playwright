@@ -1,5 +1,7 @@
 import { Router } from 'express';
-import { validarEntrada } from '../cenarios/modelo.ts';
+import { analisarCsv, gerarCsv, type LinhaAnalisada } from '../cenarios/csv.ts';
+import { LIMITES } from '../cenarios/limites.ts';
+import { validarEntrada, type CenarioEntrada } from '../cenarios/modelo.ts';
 import type { RepoCenarios } from '../cenarios/repo.ts';
 import { ErroNegocio } from '../erros.ts';
 
@@ -15,6 +17,41 @@ export function rotasCenarios(
 ): Router {
   const rotas = Router();
 
+  /** Baixa todos os cenários no formato do CSV de controle (o mesmo que a importação aceita de volta). */
+  rotas.get('/exportar.csv', async (_req, res) => {
+    res.type('text/csv; charset=utf-8').attachment('cenarios.csv').send(gerarCsv(await repo.listar()));
+  });
+
+  /**
+   * Importação em duas etapas, as duas conferindo cada linha pelas regras do cadastro:
+   * `modo: 'previa'` só analisa; `'ignorar'`/`'atualizar'` grava (linhas com erro ficam de fora e voltam listadas).
+   */
+  rotas.post('/importar', async (req, res) => {
+    const corpo = (typeof req.body === 'object' && req.body !== null ? req.body : {}) as { csv?: unknown; modo?: unknown };
+    if (typeof corpo.csv !== 'string' || corpo.csv.trim() === '') throw new ErroNegocio('csv_invalido', 'Envie o conteúdo do CSV no campo "csv".');
+    const modo = corpo.modo ?? 'previa';
+    if (modo !== 'previa' && modo !== 'ignorar' && modo !== 'atualizar') {
+      throw new ErroNegocio('csv_invalido', 'Modo deve ser "previa", "ignorar" ou "atualizar".');
+    }
+    if (Buffer.byteLength(corpo.csv, 'utf8') > LIMITES.maxBytesCsv) {
+      throw new ErroNegocio('csv_invalido', `O arquivo passa de ${Math.round(LIMITES.maxBytesCsv / 1024 / 1024)} MB, o máximo por importação.`);
+    }
+
+    const existentes = new Map<string, CenarioEntrada>((await repo.listar()).map((c) => [c.idCenario, c]));
+    const { linhas, colunasIgnoradas } = analisarCsv(corpo.csv, existentes);
+    const contar = (s: LinhaAnalisada['situacao']) => linhas.filter((l) => l.situacao === s).length;
+    const resumo = { total: linhas.length, novos: contar('novo'), existentes: contar('existente'), iguais: contar('igual'), comErro: contar('erro') };
+    const problemas = linhas.filter((l) => l.situacao === 'erro').map(({ linha, idCenario, mensagens }) => ({ linha, idCenario, mensagens }));
+
+    if (modo === 'previa') {
+      res.json({ resumo, problemas, colunasIgnoradas, armazenamento: await repo.armazenamento() });
+      return;
+    }
+    const entradas = linhas.filter((l) => l.entrada && (l.situacao === 'novo' || l.situacao === 'existente')).map((l) => l.entrada!);
+    const resultado = await repo.importar(entradas, modo);
+    res.json({ ...resultado, resumo, problemas, colunasIgnoradas, armazenamento: await repo.armazenamento() });
+  });
+
   rotas.get('/:id/planos', async (req, res) => {
     const id = String(req.params.id);
     if (!(await repo.listar()).some((c) => c.idCenario === id)) throw new ErroNegocio('nao_encontrado', `Cenário ${id} não encontrado.`);
@@ -24,7 +61,8 @@ export function rotasCenarios(
   rotas.get('/', async (_req, res) => {
     const cenarios = await repo.listar();
     const funcionalidades = [...new Set(cenarios.map((c) => c.funcionalidade))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-    res.json({ cenarios, funcionalidades });
+    const projetos = [...new Set(cenarios.map((c) => c.projeto).filter((p): p is string => !!p))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    res.json({ cenarios, funcionalidades, projetos, armazenamento: await repo.armazenamento() });
   });
 
   rotas.post('/', async (req, res) => {

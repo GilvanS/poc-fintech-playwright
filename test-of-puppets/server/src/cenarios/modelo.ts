@@ -3,6 +3,10 @@ export interface CenarioEntrada {
   idCenario: string;
   nome: string;
   funcionalidade: string;
+  /** Arquivo/feature do teste (ex.: `faturas.feature`). */
+  feature?: string;
+  /** Projeto a que o teste pertence (ex.: `FintechBankApp`). */
+  projeto?: string;
   idMassa?: string;
   /** Só os 11 dígitos; a tela mostra mascarado. */
   cpf?: string;
@@ -69,6 +73,8 @@ export function validarEntrada(entrada: unknown): ResultadoValidacao {
     return texto;
   };
 
+  const feature = opcional('feature', 'Feature', 120);
+  const projeto = opcional('projeto', 'Projeto', 60);
   const passos = opcional('passos', 'Passos', 300);
   const resultadoEsperado = opcional('resultadoEsperado', 'Resultado esperado', 300);
 
@@ -91,6 +97,8 @@ export function validarEntrada(entrada: unknown): ResultadoValidacao {
       idCenario,
       nome,
       funcionalidade,
+      ...(feature ? { feature } : {}),
+      ...(projeto ? { projeto } : {}),
       ...(idMassa ? { idMassa } : {}),
       ...(cpf ? { cpf } : {}),
       ...(passos ? { passos } : {}),

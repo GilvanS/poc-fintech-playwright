@@ -9,6 +9,8 @@ interface Props {
   cenario?: CenarioVisao;
   cenarios: CenarioVisao[];
   funcionalidades: string[];
+  /** Projetos já cadastrados (sugestões do campo Projeto). */
+  projetos?: string[];
   onSalvar: (entrada: CenarioEntrada, versao?: number) => Promise<void>;
   onFechar: () => void;
 }
@@ -18,11 +20,13 @@ const campo =
 const rotulo = 'block mb-1 text-[11px] font-bold text-on-surface-variant';
 
 /** Modal M16 — cadastro e edição de cenário. Senha e PIN não existem aqui. */
-export default function CenarioModal({ cenario, cenarios, funcionalidades, onSalvar, onFechar }: Props) {
+export default function CenarioModal({ cenario, cenarios, funcionalidades, projetos = [], onSalvar, onFechar }: Props) {
   const edicao = cenario !== undefined;
   const [idCenario, setIdCenario] = useState(cenario?.idCenario ?? '');
   const [nome, setNome] = useState(cenario?.nome ?? '');
   const [funcionalidade, setFuncionalidade] = useState(cenario?.funcionalidade ?? '');
+  const [feature, setFeature] = useState(cenario?.feature ?? '');
+  const [projeto, setProjeto] = useState(cenario?.projeto ?? '');
   const [idMassa, setIdMassa] = useState(cenario?.idMassa ?? '');
   const [cpf, setCpf] = useState(formatarCpf(cenario?.cpf ?? ''));
   const [passos, setPassos] = useState(cenario?.passos ?? '');
@@ -56,6 +60,8 @@ export default function CenarioModal({ cenario, cenarios, funcionalidades, onSal
       idCenario: idCenario.trim(),
       nome: nome.trim(),
       funcionalidade: funcionalidade.trim(),
+      feature: texto(feature),
+      projeto: texto(projeto),
       idMassa: texto(idMassa),
       cpf: texto(cpf.replace(/\D/g, '')),
       passos: texto(passos),
@@ -119,6 +125,21 @@ export default function CenarioModal({ cenario, cenarios, funcionalidades, onSal
                 <option key={f} value={f} />
               ))}
             </datalist>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="cen-feature" className={rotulo}>Feature (opcional)</label>
+              <input id="cen-feature" value={feature} onChange={(e) => setFeature(e.target.value)} maxLength={120} placeholder="ex.: faturas.feature" autoComplete="off" className={`${campo} font-mono`} />
+            </div>
+            <div>
+              <label htmlFor="cen-projeto" className={rotulo}>Projeto (opcional)</label>
+              <input id="cen-projeto" list="cen-projetos" value={projeto} onChange={(e) => setProjeto(e.target.value)} maxLength={60} placeholder="ex.: FintechBankApp" autoComplete="off" className={campo} />
+              <datalist id="cen-projetos">
+                {projetos.map((p) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>

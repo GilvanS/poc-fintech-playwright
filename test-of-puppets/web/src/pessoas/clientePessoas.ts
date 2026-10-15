@@ -19,6 +19,8 @@ export interface Pessoa {
   capacidadeMinSemana: number;
   cor: Cor;
   ativa: boolean;
+  /** Admin pode excluir qualquer visão salva; as demais pessoas só a própria visão pessoal. */
+  admin: boolean;
   versao: number;
   criadoEm: string;
   atualizadoEm: string;
@@ -29,6 +31,7 @@ export interface CamposPessoa {
   capacidadeMinSemana?: number;
   cor?: Cor;
   ativa?: boolean;
+  admin?: boolean;
 }
 
 export const listarPessoas = () => pedir<{ pessoas?: Pessoa[] }>('GET', '/api/pessoas').then((r) => r.pessoas ?? []);

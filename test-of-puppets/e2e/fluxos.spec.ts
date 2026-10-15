@@ -40,8 +40,9 @@ test('cadastra dois cenários com a mesma massa, monta um plano e a dependência
   await expect(segundo.getByText('Dependência automática: roda depois de CT03.2')).toBeVisible();
   await segundo.getByRole('button', { name: 'Salvar cenário' }).click();
 
-  // A linha do CT03.2 também cita o CT03.7 ("= compartilhada com…"), então a linha certa é a que COMEÇA com o ID.
-  const linha37 = page.getByRole('row', { name: /^CT03\.7\b/ });
+  // A linha do CT03.2 também cita o CT03.7 ("= compartilhada com…"), então a linha certa é a que COMEÇA com o ID
+  // (o ID é o botão "Detalhes de CT03.7", que abre o detalhe do cenário).
+  const linha37 = page.getByRole('row', { name: /^Detalhes de CT03\.7\b/ });
   await expect(linha37).toContainText('Depende de CT03.2');
   await expect(linha37).toContainText('529.982.247-25');
   await expect(page.getByRole('alert')).toHaveCount(0); // massa repetida não é erro
