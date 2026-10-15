@@ -41,8 +41,8 @@ const tratarErros: ErrorRequestHandler = (erro, _req, res, _next) => {
 export function createApp({ dirDados = DADOS_PADRAO, modoTeste = false }: OpcoesApp = {}): Express {
   const app = express();
   app.disable('x-powered-by');
-  // A importação manda o CSV inteiro dentro do JSON: o teto de 5 MB do arquivo (um pouco mais com o escape do JSON).
-  app.use('/api/cenarios/importar', express.json({ limit: '6mb' }));
+  // A importação manda o CSV inteiro dentro do JSON: o teto de 10 MB do arquivo (um pouco mais com o escape do JSON).
+  app.use('/api/cenarios/importar', express.json({ limit: '12mb' }));
   app.use(express.json());
 
   app.get('/api/saude', (_req, res) => {

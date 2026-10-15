@@ -210,13 +210,13 @@ describe('Cenários — importar CSV', () => {
     expect(within(painel).getByRole('button', { name: 'Importar 10 cenários' })).toBeDisabled();
   });
 
-  it('arquivo acima de 5 MB é recusado na hora, sem chamar o servidor', async () => {
+  it('arquivo acima de 10 MB é recusado na hora, sem chamar o servidor', async () => {
     const api = await abrir();
     const painel = await abrirImportacao();
     const grande = new File(['x'], 'grande.csv', { type: 'text/csv' });
-    Object.defineProperty(grande, 'size', { value: 6 * 1024 * 1024 });
+    Object.defineProperty(grande, 'size', { value: 11 * 1024 * 1024 });
     await userEvent.upload(within(painel).getByLabelText('Arquivo CSV'), grande);
-    expect(await within(painel).findByRole('alert')).toHaveTextContent('passa de 5 MB');
+    expect(await within(painel).findByRole('alert')).toHaveTextContent('passa de 10 MB');
     expect(api.chamadas.some((c) => c.caminho === '/api/cenarios/importar')).toBe(false);
   });
 });

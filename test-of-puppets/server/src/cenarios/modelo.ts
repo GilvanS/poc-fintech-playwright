@@ -75,8 +75,8 @@ export function validarEntrada(entrada: unknown): ResultadoValidacao {
 
   const feature = opcional('feature', 'Feature', 120);
   const projeto = opcional('projeto', 'Projeto', 60);
-  const passos = opcional('passos', 'Passos', 300);
-  const resultadoEsperado = opcional('resultadoEsperado', 'Resultado esperado', 300);
+  const passos = opcional('passos', 'Passos', 2000);
+  const resultadoEsperado = opcional('resultadoEsperado', 'Resultado esperado', 1000);
 
   const idMassa = opcional('idMassa', 'ID da massa', 20);
   if (idMassa && !FORMATO_MASSA.test(idMassa) && idMassa.length <= 20) {

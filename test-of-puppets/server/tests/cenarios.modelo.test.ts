@@ -58,7 +58,9 @@ test('nome e funcionalidade são obrigatórios; junta todas as mensagens de uma 
 
 test('limita o tamanho dos textos', () => {
   assert.deepEqual(mensagens({ ...base, nome: 'x'.repeat(121) }), ['Nome deve ter no máximo 120 caracteres.']);
-  assert.deepEqual(mensagens({ ...base, passos: 'x'.repeat(301) }), ['Passos deve ter no máximo 300 caracteres.']);
+  assert.deepEqual(mensagens({ ...base, passos: 'x'.repeat(2001) }), ['Passos deve ter no máximo 2000 caracteres.']);
+  assert.deepEqual(mensagens({ ...base, resultadoEsperado: 'x'.repeat(1001) }), ['Resultado esperado deve ter no máximo 1000 caracteres.']);
+  valido({ ...base, passos: 'x'.repeat(2000), resultadoEsperado: 'y'.repeat(1000) }); // no limite exato passa
 });
 
 test('ID da massa só aceita letras, números, hífen e sublinhado (até 20)', () => {

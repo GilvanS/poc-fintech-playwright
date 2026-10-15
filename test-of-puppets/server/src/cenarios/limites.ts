@@ -1,6 +1,7 @@
 /**
  * Tetos do cadastro de cenários, bem abaixo do que incomoda o GitHub (aviso em arquivo de 50 MB, bloqueio em 100 MB).
- * Uma linha pesa no máximo uns 1,5 KB (os textos têm tamanho máximo), então 5.000 cenários ficam perto de 7,5 MB.
+ * Uma linha pesa no máximo uns 3,5 KB (os textos têm tamanho máximo: passos 2.000, resultado esperado 1.000), então 5.000
+ * cenários ficam abaixo de 18 MB no pior caso e perto de 3 MB com cenários reais (uns 600 bytes cada).
  * O `.db` não vai para o git (pasta `dados/`); o que vai é o CSV de controle, que é texto e mostra diferenças linha a linha.
  */
 export const LIMITES = {
@@ -8,7 +9,7 @@ export const LIMITES = {
   avisoCenarios: 4000,
   maxBytesBanco: 25 * 1024 * 1024,
   avisoBytesBanco: 20 * 1024 * 1024,
-  maxBytesCsv: 5 * 1024 * 1024,
+  maxBytesCsv: 10 * 1024 * 1024,
   maxLinhasCsv: 5000,
 } as const;
 

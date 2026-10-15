@@ -10,7 +10,7 @@ interface Props {
 }
 
 /** O servidor recusa arquivo maior que isto; avisar antes poupa mandar tudo à toa. */
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_PROBLEMAS_NA_TELA = 50;
 
 function lerTexto(arquivo: File): Promise<string> {
@@ -117,7 +117,7 @@ export default function ImportarCsvModal({ onImportado, onFechar }: Props) {
               />
               <p className="mt-2 text-[11px] text-on-surface-variant">
                 Colunas: ID, Nome, Funcionalidade (obrigatórias); Feature, Projeto, Massa, CPF, Passos, Resultado esperado (opcionais). Separador ; ou , e acentos em UTF-8.
-                O melhor modelo é o arquivo que o botão Exportar CSV gera. Máximo: 5 MB e 5.000 linhas.
+                O melhor modelo é o arquivo que o botão Exportar CSV gera. Máximo: 10 MB e 5.000 linhas.
               </p>
             </div>
 

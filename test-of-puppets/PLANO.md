@@ -606,7 +606,8 @@ Execuções (1)
 > Cenários e massa*; dados em `dados/cenarios.db` (`node:sqlite` do Node 24, sem pacote; **não vai para o git**); CSV de controle em
 > `controle/cenarios.csv` (**vai para o git**, regravado a cada mudança). O `cenarios.json` antigo é migrado sozinho (vira `.migrado`).
 > **Campos:** os de antes + `feature` (até 120) e `projeto` (até 60). **Limites** (`server/src/cenarios/limites.ts`): 5.000 cenários (aviso
-> aos 4.000), banco de 25 MB (aviso aos 20), CSV de importação de 5 MB / 5.000 linhas; passar do teto dá 409 `limite_cenarios`.
+> aos 4.000), banco de 25 MB (aviso aos 20), CSV de importação de 10 MB / 5.000 linhas; passar do teto dá 409 `limite_cenarios`. Textos longos: passos até 2.000 e
+> resultado esperado até 1.000 caracteres (o maior passo dos `.feature` reais tem 1.488; com 300 os detalhes eram cortados).
 > **CSV:** `;`, UTF-8 com BOM, colunas `ID;Nome;Funcionalidade;Feature;Projeto;Massa;CPF;Passos;Resultado esperado` (a importação aceita também
 > `,`/tab, títulos com acento/variações e ID em minúsculas). `GET /api/cenarios/exportar.csv`; `POST /api/cenarios/importar` com
 > `{csv, modo}`: `previa` só confere (novo/existente/igual/erro, com o número da linha), `ignorar`/`atualizar` grava tudo-ou-nada em transação
